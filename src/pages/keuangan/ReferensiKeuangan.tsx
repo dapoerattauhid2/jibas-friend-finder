@@ -134,10 +134,10 @@ function TabJenisPembayaran() {
             </div>
             <div>
               <Label>Akun Pendapatan (untuk jurnal otomatis)</Label>
-              <Select value={akunPendapatanId} onValueChange={setAkunPendapatanId}>
+              <Select value={akunPendapatanId || "__none__"} onValueChange={(v) => setAkunPendapatanId(v === "__none__" ? "" : v)}>
                 <SelectTrigger><SelectValue placeholder="Pilih akun pendapatan..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">— Tidak diset —</SelectItem>
+                  <SelectItem value="__none__">— Tidak diset —</SelectItem>
                   {akunPendapatanList?.map((a: any) => (
                     <SelectItem key={a.id} value={a.id}>{a.kode} - {a.nama}</SelectItem>
                   ))}
