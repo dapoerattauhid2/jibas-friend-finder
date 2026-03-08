@@ -117,7 +117,7 @@ function TabMapel({ canEdit }: { canEdit: boolean }) {
         <Select value={filterDept} onValueChange={setFilterDept}>
           <SelectTrigger className="w-48"><SelectValue placeholder="Semua Lembaga" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Semua Lembaga</SelectItem>
+            <SelectItem value="__all__">Semua Lembaga</SelectItem>
             {depts?.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.kode || d.nama}</SelectItem>)}
           </SelectContent>
         </Select>

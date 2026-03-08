@@ -84,6 +84,7 @@ const App = () => (
                 <Route path="/akademik/siswa/tambah" element={<FormSiswa />} />
                 <Route path="/akademik/siswa/:id" element={<DetailSiswa />} />
                 <Route path="/akademik/siswa/:id/edit" element={<FormSiswa />} />
+                <Route path="/akademik/mutasi" element={<MutasiSiswa />} />
                 <Route path="/akademik/psb" element={<PSB />} />
                 <Route path="/akademik/jadwal" element={<JadwalPelajaran />} />
                 <Route path="/akademik/presensi" element={<PresensiSiswa />} />
