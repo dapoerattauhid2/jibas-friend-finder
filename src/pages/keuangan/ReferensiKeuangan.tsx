@@ -330,12 +330,12 @@ function TabPengaturanAkun() {
             <div key={cfg.kode} className="space-y-2 p-4 border rounded-lg">
               <Label className="text-base font-semibold">{cfg.label}</Label>
               <p className="text-sm text-muted-foreground">{cfg.desc}</p>
-              <Select value={values[cfg.kode] || ""} onValueChange={(v) => setValues(prev => ({ ...prev, [cfg.kode]: v }))}>
+              <Select value={values[cfg.kode] || "__none__"} onValueChange={(v) => setValues(prev => ({ ...prev, [cfg.kode]: v === "__none__" ? "" : v }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih akun..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">— Belum diset —</SelectItem>
+                  <SelectItem value="__none__">— Belum diset —</SelectItem>
                   {akunAsetList?.map((a: any) => (
                     <SelectItem key={a.id} value={a.id}>{a.kode} - {a.nama}</SelectItem>
                   ))}
