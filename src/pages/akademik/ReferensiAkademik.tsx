@@ -34,11 +34,13 @@ export default function ReferensiAkademik() {
           <TabsTrigger value="mapel">Mata Pelajaran</TabsTrigger>
           <TabsTrigger value="kelas">Kelas</TabsTrigger>
           <TabsTrigger value="tingkat">Tingkat</TabsTrigger>
+          <TabsTrigger value="angkatan">Angkatan</TabsTrigger>
           <TabsTrigger value="departemen">Departemen/Lembaga</TabsTrigger>
         </TabsList>
         <TabsContent value="mapel"><TabMapel canEdit={canEdit} /></TabsContent>
         <TabsContent value="kelas"><TabKelas canEdit={canEdit} /></TabsContent>
         <TabsContent value="tingkat"><TabTingkat canEdit={canEdit} /></TabsContent>
+        <TabsContent value="angkatan"><TabAngkatan canEdit={canEdit} /></TabsContent>
         <TabsContent value="departemen"><TabDepartemen /></TabsContent>
       </Tabs>
     </div>
