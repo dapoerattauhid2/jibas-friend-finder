@@ -587,6 +587,168 @@ export type Database = {
           },
         ]
       }
+      kkm: {
+        Row: {
+          id: string
+          kelas_id: string | null
+          mapel_id: string | null
+          nilai_kkm: number | null
+          semester_id: string | null
+          tahun_ajaran_id: string | null
+        }
+        Insert: {
+          id?: string
+          kelas_id?: string | null
+          mapel_id?: string | null
+          nilai_kkm?: number | null
+          semester_id?: string | null
+          tahun_ajaran_id?: string | null
+        }
+        Update: {
+          id?: string
+          kelas_id?: string | null
+          mapel_id?: string | null
+          nilai_kkm?: number | null
+          semester_id?: string | null
+          tahun_ajaran_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kkm_kelas_id_fkey"
+            columns: ["kelas_id"]
+            isOneToOne: false
+            referencedRelation: "kelas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kkm_mapel_id_fkey"
+            columns: ["mapel_id"]
+            isOneToOne: false
+            referencedRelation: "mata_pelajaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kkm_semester_id_fkey"
+            columns: ["semester_id"]
+            isOneToOne: false
+            referencedRelation: "semester"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kkm_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "tahun_ajaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kkm_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["tahun_ajaran_id"]
+          },
+        ]
+      }
+      koleksi_buku: {
+        Row: {
+          aktif: boolean | null
+          created_at: string | null
+          deskripsi: string | null
+          foto_url: string | null
+          id: string
+          isbn: string | null
+          judul: string
+          jumlah_tersedia: number | null
+          jumlah_total: number | null
+          kategori: string | null
+          kode: string | null
+          lokasi: string | null
+          penerbit: string | null
+          pengarang: string | null
+          tahun_terbit: number | null
+        }
+        Insert: {
+          aktif?: boolean | null
+          created_at?: string | null
+          deskripsi?: string | null
+          foto_url?: string | null
+          id?: string
+          isbn?: string | null
+          judul: string
+          jumlah_tersedia?: number | null
+          jumlah_total?: number | null
+          kategori?: string | null
+          kode?: string | null
+          lokasi?: string | null
+          penerbit?: string | null
+          pengarang?: string | null
+          tahun_terbit?: number | null
+        }
+        Update: {
+          aktif?: boolean | null
+          created_at?: string | null
+          deskripsi?: string | null
+          foto_url?: string | null
+          id?: string
+          isbn?: string | null
+          judul?: string
+          jumlah_tersedia?: number | null
+          jumlah_total?: number | null
+          kategori?: string | null
+          kode?: string | null
+          lokasi?: string | null
+          penerbit?: string | null
+          pengarang?: string | null
+          tahun_terbit?: number | null
+        }
+        Relationships: []
+      }
+      kompetensi_dasar: {
+        Row: {
+          aktif: boolean | null
+          deskripsi: string
+          id: string
+          kode_kd: string
+          mapel_id: string | null
+          semester_id: string | null
+          urutan: number | null
+        }
+        Insert: {
+          aktif?: boolean | null
+          deskripsi: string
+          id?: string
+          kode_kd: string
+          mapel_id?: string | null
+          semester_id?: string | null
+          urutan?: number | null
+        }
+        Update: {
+          aktif?: boolean | null
+          deskripsi?: string
+          id?: string
+          kode_kd?: string
+          mapel_id?: string | null
+          semester_id?: string | null
+          urutan?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kompetensi_dasar_mapel_id_fkey"
+            columns: ["mapel_id"]
+            isOneToOne: false
+            referencedRelation: "mata_pelajaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kompetensi_dasar_semester_id_fkey"
+            columns: ["semester_id"]
+            isOneToOne: false
+            referencedRelation: "semester"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mata_pelajaran: {
         Row: {
           aktif: boolean | null
@@ -643,6 +805,89 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tingkat"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      nilai_kd: {
+        Row: {
+          id: string
+          kd_id: string | null
+          kelas_id: string | null
+          keterangan: string | null
+          nilai: number | null
+          semester_id: string | null
+          siswa_id: string | null
+          tahun_ajaran_id: string | null
+        }
+        Insert: {
+          id?: string
+          kd_id?: string | null
+          kelas_id?: string | null
+          keterangan?: string | null
+          nilai?: number | null
+          semester_id?: string | null
+          siswa_id?: string | null
+          tahun_ajaran_id?: string | null
+        }
+        Update: {
+          id?: string
+          kd_id?: string | null
+          kelas_id?: string | null
+          keterangan?: string | null
+          nilai?: number | null
+          semester_id?: string | null
+          siswa_id?: string | null
+          tahun_ajaran_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nilai_kd_kd_id_fkey"
+            columns: ["kd_id"]
+            isOneToOne: false
+            referencedRelation: "kompetensi_dasar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nilai_kd_kelas_id_fkey"
+            columns: ["kelas_id"]
+            isOneToOne: false
+            referencedRelation: "kelas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nilai_kd_semester_id_fkey"
+            columns: ["semester_id"]
+            isOneToOne: false
+            referencedRelation: "semester"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nilai_kd_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "siswa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nilai_kd_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["siswa_id"]
+          },
+          {
+            foreignKeyName: "nilai_kd_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "tahun_ajaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nilai_kd_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["tahun_ajaran_id"]
           },
         ]
       }
@@ -982,6 +1227,66 @@ export type Database = {
           },
         ]
       }
+      peminjaman: {
+        Row: {
+          created_at: string | null
+          denda: number | null
+          id: string
+          keterangan: string | null
+          koleksi_id: string | null
+          peminjam_id: string
+          peminjam_tipe: string | null
+          petugas_id: string | null
+          status: string | null
+          tanggal_kembali_aktual: string | null
+          tanggal_kembali_rencana: string
+          tanggal_pinjam: string
+        }
+        Insert: {
+          created_at?: string | null
+          denda?: number | null
+          id?: string
+          keterangan?: string | null
+          koleksi_id?: string | null
+          peminjam_id: string
+          peminjam_tipe?: string | null
+          petugas_id?: string | null
+          status?: string | null
+          tanggal_kembali_aktual?: string | null
+          tanggal_kembali_rencana: string
+          tanggal_pinjam?: string
+        }
+        Update: {
+          created_at?: string | null
+          denda?: number | null
+          id?: string
+          keterangan?: string | null
+          koleksi_id?: string | null
+          peminjam_id?: string
+          peminjam_tipe?: string | null
+          petugas_id?: string | null
+          status?: string | null
+          tanggal_kembali_aktual?: string | null
+          tanggal_kembali_rencana?: string
+          tanggal_pinjam?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peminjaman_koleksi_id_fkey"
+            columns: ["koleksi_id"]
+            isOneToOne: false
+            referencedRelation: "koleksi_buku"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "peminjaman_petugas_id_fkey"
+            columns: ["petugas_id"]
+            isOneToOne: false
+            referencedRelation: "pegawai"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pengaturan_akun: {
         Row: {
           akun_id: string | null
@@ -1092,6 +1397,83 @@ export type Database = {
             columns: ["petugas_id"]
             isOneToOne: false
             referencedRelation: "pegawai"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pengumuman: {
+        Row: {
+          aktif: boolean | null
+          created_at: string | null
+          departemen_id: string | null
+          id: string
+          judul: string
+          kategori: string | null
+          konten: string
+          penting: boolean | null
+          penulis_id: string | null
+          tanggal_kadaluarsa: string | null
+          tanggal_tayang: string | null
+          target_id: string | null
+          target_tipe: string | null
+        }
+        Insert: {
+          aktif?: boolean | null
+          created_at?: string | null
+          departemen_id?: string | null
+          id?: string
+          judul: string
+          kategori?: string | null
+          konten: string
+          penting?: boolean | null
+          penulis_id?: string | null
+          tanggal_kadaluarsa?: string | null
+          tanggal_tayang?: string | null
+          target_id?: string | null
+          target_tipe?: string | null
+        }
+        Update: {
+          aktif?: boolean | null
+          created_at?: string | null
+          departemen_id?: string | null
+          id?: string
+          judul?: string
+          kategori?: string | null
+          konten?: string
+          penting?: boolean | null
+          penulis_id?: string | null
+          tanggal_kadaluarsa?: string | null
+          tanggal_tayang?: string | null
+          target_id?: string | null
+          target_tipe?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pengumuman_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "departemen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pengumuman_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_rekap_keuangan_lembaga"
+            referencedColumns: ["departemen_id"]
+          },
+          {
+            foreignKeyName: "pengumuman_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["departemen_id"]
+          },
+          {
+            foreignKeyName: "pengumuman_penulis_id_fkey"
+            columns: ["penulis_id"]
+            isOneToOne: false
+            referencedRelation: "users_profile"
             referencedColumns: ["id"]
           },
         ]
@@ -1340,6 +1722,132 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tagihan_belum_bayar"
             referencedColumns: ["tahun_ajaran_id"]
+          },
+        ]
+      }
+      riwayat_diklat: {
+        Row: {
+          id: string
+          jam_pelatihan: number | null
+          nama_diklat: string
+          pegawai_id: string | null
+          penyelenggara: string | null
+          sertifikat_nomor: string | null
+          tanggal_mulai: string | null
+          tanggal_selesai: string | null
+        }
+        Insert: {
+          id?: string
+          jam_pelatihan?: number | null
+          nama_diklat: string
+          pegawai_id?: string | null
+          penyelenggara?: string | null
+          sertifikat_nomor?: string | null
+          tanggal_mulai?: string | null
+          tanggal_selesai?: string | null
+        }
+        Update: {
+          id?: string
+          jam_pelatihan?: number | null
+          nama_diklat?: string
+          pegawai_id?: string | null
+          penyelenggara?: string | null
+          sertifikat_nomor?: string | null
+          tanggal_mulai?: string | null
+          tanggal_selesai?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "riwayat_diklat_pegawai_id_fkey"
+            columns: ["pegawai_id"]
+            isOneToOne: false
+            referencedRelation: "pegawai"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      riwayat_jabatan: {
+        Row: {
+          id: string
+          jabatan: string
+          keterangan: string | null
+          pegawai_id: string | null
+          sampai: string | null
+          sk_nomor: string | null
+          sk_tanggal: string | null
+          tmt: string | null
+          unit_kerja: string | null
+        }
+        Insert: {
+          id?: string
+          jabatan: string
+          keterangan?: string | null
+          pegawai_id?: string | null
+          sampai?: string | null
+          sk_nomor?: string | null
+          sk_tanggal?: string | null
+          tmt?: string | null
+          unit_kerja?: string | null
+        }
+        Update: {
+          id?: string
+          jabatan?: string
+          keterangan?: string | null
+          pegawai_id?: string | null
+          sampai?: string | null
+          sk_nomor?: string | null
+          sk_tanggal?: string | null
+          tmt?: string | null
+          unit_kerja?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "riwayat_jabatan_pegawai_id_fkey"
+            columns: ["pegawai_id"]
+            isOneToOne: false
+            referencedRelation: "pegawai"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      riwayat_pendidikan: {
+        Row: {
+          id: string
+          ijazah_nomor: string | null
+          jenjang: string
+          jurusan: string | null
+          nama_institusi: string
+          pegawai_id: string | null
+          tahun_lulus: number | null
+          tahun_masuk: number | null
+        }
+        Insert: {
+          id?: string
+          ijazah_nomor?: string | null
+          jenjang: string
+          jurusan?: string | null
+          nama_institusi: string
+          pegawai_id?: string | null
+          tahun_lulus?: number | null
+          tahun_masuk?: number | null
+        }
+        Update: {
+          id?: string
+          ijazah_nomor?: string | null
+          jenjang?: string
+          jurusan?: string | null
+          nama_institusi?: string
+          pegawai_id?: string | null
+          tahun_lulus?: number | null
+          tahun_masuk?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "riwayat_pendidikan_pegawai_id_fkey"
+            columns: ["pegawai_id"]
+            isOneToOne: false
+            referencedRelation: "pegawai"
+            referencedColumns: ["id"]
           },
         ]
       }
