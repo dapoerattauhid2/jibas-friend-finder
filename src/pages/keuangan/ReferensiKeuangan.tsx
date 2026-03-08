@@ -122,10 +122,10 @@ function TabJenisPembayaran() {
             <div><Label>Nominal (Rp)</Label><Input type="number" value={nominal} onChange={(e) => setNominal(e.target.value)} placeholder="0" /></div>
             <div>
               <Label>Lembaga (kosongkan jika berlaku untuk semua)</Label>
-              <Select value={formDepartemenId} onValueChange={setFormDepartemenId}>
+              <Select value={formDepartemenId || "__all__"} onValueChange={(v) => setFormDepartemenId(v === "__all__" ? "" : v)}>
                 <SelectTrigger><SelectValue placeholder="Semua lembaga" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Semua Lembaga</SelectItem>
+                  <SelectItem value="__all__">Semua Lembaga</SelectItem>
                   {lembagaList?.map((l: any) => (
                     <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>
                   ))}
@@ -134,10 +134,10 @@ function TabJenisPembayaran() {
             </div>
             <div>
               <Label>Akun Pendapatan (untuk jurnal otomatis)</Label>
-              <Select value={akunPendapatanId} onValueChange={setAkunPendapatanId}>
+              <Select value={akunPendapatanId || "__none__"} onValueChange={(v) => setAkunPendapatanId(v === "__none__" ? "" : v)}>
                 <SelectTrigger><SelectValue placeholder="Pilih akun pendapatan..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">— Tidak diset —</SelectItem>
+                  <SelectItem value="__none__">— Tidak diset —</SelectItem>
                   {akunPendapatanList?.map((a: any) => (
                     <SelectItem key={a.id} value={a.id}>{a.kode} - {a.nama}</SelectItem>
                   ))}
@@ -229,10 +229,10 @@ function TabJenisPengeluaran() {
             <div><Label>Nama</Label><Input value={nama} onChange={(e) => setNama(e.target.value)} /></div>
             <div>
               <Label>Lembaga (kosongkan jika berlaku untuk semua)</Label>
-              <Select value={formDepartemenId} onValueChange={setFormDepartemenId}>
+              <Select value={formDepartemenId || "__all__"} onValueChange={(v) => setFormDepartemenId(v === "__all__" ? "" : v)}>
                 <SelectTrigger><SelectValue placeholder="Semua lembaga" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Semua Lembaga</SelectItem>
+                  <SelectItem value="__all__">Semua Lembaga</SelectItem>
                   {lembagaList?.map((l: any) => (
                     <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>
                   ))}
@@ -241,10 +241,10 @@ function TabJenisPengeluaran() {
             </div>
             <div>
               <Label>Akun Beban (untuk jurnal otomatis)</Label>
-              <Select value={akunBebanId} onValueChange={setAkunBebanId}>
+              <Select value={akunBebanId || "__none__"} onValueChange={(v) => setAkunBebanId(v === "__none__" ? "" : v)}>
                 <SelectTrigger><SelectValue placeholder="Pilih akun beban..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">— Tidak diset —</SelectItem>
+                  <SelectItem value="__none__">— Tidak diset —</SelectItem>
                   {akunBebanList?.map((a: any) => (
                     <SelectItem key={a.id} value={a.id}>{a.kode} - {a.nama}</SelectItem>
                   ))}
@@ -330,12 +330,12 @@ function TabPengaturanAkun() {
             <div key={cfg.kode} className="space-y-2 p-4 border rounded-lg">
               <Label className="text-base font-semibold">{cfg.label}</Label>
               <p className="text-sm text-muted-foreground">{cfg.desc}</p>
-              <Select value={values[cfg.kode] || ""} onValueChange={(v) => setValues(prev => ({ ...prev, [cfg.kode]: v }))}>
+              <Select value={values[cfg.kode] || "__none__"} onValueChange={(v) => setValues(prev => ({ ...prev, [cfg.kode]: v === "__none__" ? "" : v }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih akun..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">— Belum diset —</SelectItem>
+                  <SelectItem value="__none__">— Belum diset —</SelectItem>
                   {akunAsetList?.map((a: any) => (
                     <SelectItem key={a.id} value={a.id}>{a.kode} - {a.nama}</SelectItem>
                   ))}
@@ -451,10 +451,10 @@ function TabAkunRekening() {
             </div>
             <div>
               <Label>Lembaga (kosongkan jika shared antar lembaga)</Label>
-              <Select value={formDepartemenId} onValueChange={setFormDepartemenId}>
+              <Select value={formDepartemenId || "__all__"} onValueChange={(v) => setFormDepartemenId(v === "__all__" ? "" : v)}>
                 <SelectTrigger><SelectValue placeholder="Shared (semua lembaga)" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Shared (Semua Lembaga)</SelectItem>
+                  <SelectItem value="__all__">Shared (Semua Lembaga)</SelectItem>
                   {lembagaList?.map((l: any) => (
                     <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>
                   ))}

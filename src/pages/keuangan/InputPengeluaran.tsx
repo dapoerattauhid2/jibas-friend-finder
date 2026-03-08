@@ -228,12 +228,12 @@ export default function InputPengeluaran() {
       <div className="flex gap-3 items-end flex-wrap">
         <div>
           <Label>Lembaga</Label>
-          <Select value={departemenId} onValueChange={setDepartemenId}>
+          <Select value={departemenId || "__all__"} onValueChange={(v) => setDepartemenId(v === "__all__" ? "" : v)}>
             <SelectTrigger className="w-44">
               <SelectValue placeholder="Semua lembaga" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Semua Lembaga</SelectItem>
+              <SelectItem value="__all__">Semua Lembaga</SelectItem>
               {lembagaList?.map((l: any) => (
                 <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>
               ))}

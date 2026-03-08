@@ -128,7 +128,7 @@ function SetupKD() {
       <div className="flex gap-3 items-end flex-wrap">
         <div><Label>Lembaga</Label><Select value={deptId} onValueChange={(v) => { setDeptId(v); setMapelId(""); }}><SelectTrigger className="w-44"><SelectValue placeholder="Pilih" /></SelectTrigger><SelectContent>{depts?.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.kode || d.nama}</SelectItem>)}</SelectContent></Select></div>
         <div><Label>Mata Pelajaran</Label><Select value={mapelId} onValueChange={setMapelId}><SelectTrigger className="w-44"><SelectValue placeholder="Pilih" /></SelectTrigger><SelectContent>{mapelList?.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.nama}</SelectItem>)}</SelectContent></Select></div>
-        <div><Label>Semester</Label><Select value={semId} onValueChange={setSemId}><SelectTrigger className="w-36"><SelectValue placeholder="Semua" /></SelectTrigger><SelectContent><SelectItem value="">Semua</SelectItem>{semList?.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.nama}</SelectItem>)}</SelectContent></Select></div>
+        <div><Label>Semester</Label><Select value={semId || "__all__"} onValueChange={(v) => setSemId(v === "__all__" ? "" : v)}><SelectTrigger className="w-36"><SelectValue placeholder="Semua" /></SelectTrigger><SelectContent><SelectItem value="__all__">Semua</SelectItem>{semList?.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.nama}</SelectItem>)}</SelectContent></Select></div>
         {canEdit && mapelId && <Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Tambah KD</Button>}
       </div>
 

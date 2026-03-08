@@ -195,15 +195,15 @@ export default function TunggakanPembayaran() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <div>
               <Label>Lembaga</Label>
-              <Select value={departemenId} onValueChange={(v) => {
-                setDepartemenId(v);
+              <Select value={departemenId || "__all__"} onValueChange={(v) => {
+                setDepartemenId(v === "__all__" ? "" : v);
                 setJenisId("");
                 setKelasId("");
                 setSelectedIds(new Set());
               }}>
                 <SelectTrigger><SelectValue placeholder="Semua lembaga" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Semua Lembaga</SelectItem>
+                  <SelectItem value="__all__">Semua Lembaga</SelectItem>
                   {lembagaList?.map((l: any) => (
                     <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>
                   ))}
@@ -221,10 +221,10 @@ export default function TunggakanPembayaran() {
             </div>
             <div>
               <Label>Kelas</Label>
-              <Select value={kelasId} onValueChange={setKelasId}>
+              <Select value={kelasId || "__all__"} onValueChange={(v) => setKelasId(v === "__all__" ? "" : v)}>
                 <SelectTrigger><SelectValue placeholder="Semua kelas" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Semua</SelectItem>
+                  <SelectItem value="__all__">Semua</SelectItem>
                   {filteredKelas?.map((k: any) => <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>)}
                 </SelectContent>
               </Select>
