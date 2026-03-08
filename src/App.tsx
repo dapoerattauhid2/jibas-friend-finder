@@ -17,6 +17,10 @@ import FormSiswa from "./pages/akademik/FormSiswa";
 import DetailSiswa from "./pages/akademik/DetailSiswa";
 import MutasiSiswa from "./pages/akademik/MutasiSiswa";
 import PSB from "./pages/akademik/PSB";
+import JadwalPelajaran from "./pages/akademik/JadwalPelajaran";
+import PresensiSiswa from "./pages/akademik/PresensiSiswa";
+import Penilaian from "./pages/akademik/Penilaian";
+import ReferensiAkademik from "./pages/akademik/ReferensiAkademik";
 import Keuangan from "./pages/Keuangan";
 import InputPembayaran from "./pages/keuangan/InputPembayaran";
 import TunggakanPembayaran from "./pages/keuangan/TunggakanPembayaran";
@@ -81,8 +85,10 @@ const App = () => (
                 <Route path="/akademik/siswa/:id" element={<DetailSiswa />} />
                 <Route path="/akademik/siswa/:id/edit" element={<FormSiswa />} />
                 <Route path="/akademik/psb" element={<PSB />} />
-                <Route path="/akademik/mutasi" element={<MutasiSiswa />} />
-                <Route path="/akademik/:tab" element={<Akademik />} />
+                <Route path="/akademik/jadwal" element={<JadwalPelajaran />} />
+                <Route path="/akademik/presensi" element={<PresensiSiswa />} />
+                <Route path="/akademik/penilaian" element={<Penilaian />} />
+                <Route path="/akademik/referensi" element={<ReferensiAkademik />} />
                 {/* Keuangan - accessible by kasir */}
                 <Route path="/keuangan" element={<Keuangan />} />
                 <Route path="/keuangan/pembayaran" element={<InputPembayaran />} />
