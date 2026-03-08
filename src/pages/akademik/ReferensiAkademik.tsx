@@ -313,6 +313,76 @@ function TabTingkat({ canEdit }: { canEdit: boolean }) {
   );
 }
 
+function TabAngkatan({ canEdit }: { canEdit: boolean }) {
+  const qc = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editItem, setEditItem] = useState<any>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { data: depts } = useDepartemen();
+  const [form, setForm] = useState({ nama: "", departemen_id: "", keterangan: "", aktif: true });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["angkatan_all_ref"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("angkatan").select("*, departemen:departemen_id(nama, kode)").order("nama", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const saveMut = useMutation({
+    mutationFn: async (values: any) => {
+      const payload = { nama: values.nama, departemen_id: values.departemen_id || null, keterangan: values.keterangan || null, aktif: values.aktif };
+      if (editItem) { const { error } = await supabase.from("angkatan").update(payload).eq("id", editItem.id); if (error) throw error; }
+      else { const { error } = await supabase.from("angkatan").insert(payload); if (error) throw error; }
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["angkatan"] }); qc.invalidateQueries({ queryKey: ["angkatan_all_ref"] }); toast.success("Berhasil"); setDialogOpen(false); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async (id: string) => { const { error } = await supabase.from("angkatan").delete().eq("id", id); if (error) throw error; },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["angkatan"] }); qc.invalidateQueries({ queryKey: ["angkatan_all_ref"] }); toast.success("Dihapus"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const openAdd = () => { setEditItem(null); setForm({ nama: "", departemen_id: "", keterangan: "", aktif: true }); setDialogOpen(true); };
+  const openEdit = (r: any) => { setEditItem(r); setForm({ nama: r.nama, departemen_id: r.departemen_id || "", keterangan: r.keterangan || "", aktif: r.aktif !== false }); setDialogOpen(true); };
+
+  const columns: DataTableColumn<any>[] = [
+    { key: "nama", label: "Nama Angkatan", sortable: true },
+    { key: "dept", label: "Lembaga", render: (_, r) => r.departemen?.kode || "-" },
+    { key: "keterangan", label: "Keterangan", render: (v) => (v as string) || "-" },
+    { key: "aktif", label: "Status", render: (v) => <Badge variant={v ? "default" : "secondary"}>{v ? "Aktif" : "Nonaktif"}</Badge> },
+    ...(canEdit ? [{ key: "_aksi", label: "Aksi", render: (_: unknown, r: any) => (
+      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(r.id)}><Trash2 className="h-4 w-4" /></Button>
+      </div>
+    ) }] : []),
+  ];
+
+  return (
+    <div className="space-y-4 pt-4">
+      <div className="flex justify-end">{canEdit && <Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Tambah Angkatan</Button>}</div>
+      <Card><CardContent className="pt-6"><DataTable columns={columns} data={data || []} loading={isLoading} exportable exportFilename="angkatan" /></CardContent></Card>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editItem ? "Edit" : "Tambah"} Angkatan</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div><Label>Nama Angkatan *</Label><Input value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} placeholder="2025/2026" /></div>
+            <div><Label>Lembaga</Label><Select value={form.departemen_id} onValueChange={(v) => setForm({ ...form, departemen_id: v })}><SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger><SelectContent>{depts?.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.nama}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Keterangan</Label><Textarea value={form.keterangan} onChange={(e) => setForm({ ...form, keterangan: e.target.value })} /></div>
+            <div className="flex items-center gap-2"><Switch checked={form.aktif} onCheckedChange={(v) => setForm({ ...form, aktif: v })} /><Label>Aktif</Label></div>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button><Button onClick={() => { if (!form.nama) { toast.error("Nama wajib diisi"); return; } saveMut.mutate(form); }} disabled={saveMut.isPending}>Simpan</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <ConfirmDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} title="Hapus Angkatan" description="Yakin hapus angkatan ini?" onConfirm={() => { if (deleteId) deleteMut.mutate(deleteId); setDeleteId(null); }} />
+    </div>
+  );
+}
+
 function TabDepartemen() {
   const { data, isLoading } = useQuery({
     queryKey: ["departemen_all_ref"],
