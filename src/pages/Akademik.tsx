@@ -1,15 +1,23 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GraduationCap, BookOpen, Calendar, ClipboardList } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import {
+  GraduationCap, BookOpen, Calendar, ClipboardList,
+  UserPlus, ArrowRightLeft, Clock, Database,
+} from "lucide-react";
 
 const subModules = [
-  { title: "Data Siswa", desc: "Kelola data siswa dan orang tua", icon: GraduationCap },
-  { title: "Mata Pelajaran", desc: "Daftar mata pelajaran dan kurikulum", icon: BookOpen },
-  { title: "Jadwal Pelajaran", desc: "Atur jadwal kelas dan guru", icon: Calendar },
-  { title: "Penilaian & Rapor", desc: "Input nilai dan cetak rapor", icon: ClipboardList },
+  { title: "Data Siswa", desc: "Kelola data siswa dan orang tua", icon: GraduationCap, url: "/akademik/siswa" },
+  { title: "Penerimaan Siswa Baru", desc: "Proses pendaftaran siswa baru (PSB)", icon: UserPlus, url: "/akademik/psb" },
+  { title: "Mutasi Siswa", desc: "Pindah masuk/keluar dan status siswa", icon: ArrowRightLeft, url: "/akademik/mutasi" },
+  { title: "Jadwal Pelajaran", desc: "Atur jadwal kelas dan guru", icon: Calendar, url: "/akademik/jadwal" },
+  { title: "Presensi Siswa", desc: "Input dan rekap kehadiran harian", icon: Clock, url: "/akademik/presensi" },
+  { title: "Penilaian & Nilai", desc: "Input nilai dan cetak legger", icon: ClipboardList, url: "/akademik/penilaian" },
+  { title: "Referensi Akademik", desc: "Mata pelajaran, kelas, tingkat", icon: Database, url: "/akademik/referensi" },
 ];
 
 export default function Akademik() {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -17,71 +25,25 @@ export default function Akademik() {
         <p className="text-sm text-muted-foreground">Manajemen data akademik sekolah</p>
       </div>
 
-      <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">Ringkasan</TabsTrigger>
-          <TabsTrigger value="siswa">Data Siswa</TabsTrigger>
-          <TabsTrigger value="mapel">Mata Pelajaran</TabsTrigger>
-          <TabsTrigger value="jadwal">Jadwal</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="mt-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {subModules.map((m) => (
-              <Card key={m.title} className="cursor-pointer hover:shadow-md transition-shadow">
-                <CardContent className="flex items-start gap-4 p-5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <m.icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{m.title}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{m.desc}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="siswa" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Data Siswa</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">
-                Modul data siswa akan tersedia setelah database terhubung.
-              </p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {subModules.map((m) => (
+          <Card
+            key={m.title}
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate(m.url)}
+          >
+            <CardContent className="flex items-start gap-4 p-5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <m.icon className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">{m.title}</h3>
+                <p className="text-sm text-muted-foreground mt-1">{m.desc}</p>
+              </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="mapel" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Mata Pelajaran</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">
-                Modul mata pelajaran akan tersedia setelah database terhubung.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="jadwal" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Jadwal Pelajaran</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">
-                Modul jadwal akan tersedia setelah database terhubung.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        ))}
+      </div>
     </div>
   );
 }

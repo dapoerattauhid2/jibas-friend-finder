@@ -1,12 +1,6 @@
 import {
   LayoutDashboard, GraduationCap, Wallet, Users,
   MonitorPlay, BookOpen, Megaphone, Settings,
-  UserCheck, UserPlus, ClipboardList, FileText,
-  CalendarDays, ArrowRightLeft, Clock,
-  CreditCard, Receipt, BookOpenCheck, BarChart3,
-  Database, BriefcaseBusiness, FileQuestion,
-  CalendarClock, PlayCircle, Trophy,
-  Library, ArrowDownUp, School, ListChecks, UserCog,
   ChevronRight,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -19,7 +13,6 @@ import {
   SidebarHeader, useSidebar,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
 
 interface SubMenuItem {
   title: string;
@@ -44,13 +37,14 @@ const menuItems: MenuItem[] = [
     title: "Akademik", url: "/akademik", icon: GraduationCap,
     roles: ["admin", "kepala_sekolah", "guru"],
     children: [
+      { title: "Ringkasan", url: "/akademik" },
       { title: "Data Siswa", url: "/akademik/siswa" },
-      { title: "Siswa Baru (PSB)", url: "/akademik/psb" },
-      { title: "Penilaian", url: "/akademik/penilaian" },
-      { title: "Rapor", url: "/akademik/rapor" },
-      { title: "Presensi", url: "/akademik/presensi" },
+      { title: "PSB", url: "/akademik/psb" },
+      { title: "Mutasi", url: "/akademik/mutasi" },
       { title: "Jadwal", url: "/akademik/jadwal" },
-      { title: "Mutasi Siswa", url: "/akademik/mutasi" },
+      { title: "Presensi", url: "/akademik/presensi" },
+      { title: "Penilaian", url: "/akademik/penilaian" },
+      { title: "Referensi", url: "/akademik/referensi" },
     ],
   },
   {
@@ -61,6 +55,7 @@ const menuItems: MenuItem[] = [
       { title: "Tunggakan", url: "/keuangan/tunggakan", roles: ["admin", "kepala_sekolah", "keuangan", "kasir"] },
       { title: "Pengeluaran", url: "/keuangan/pengeluaran", roles: ["admin", "kepala_sekolah", "keuangan"] },
       { title: "Tabungan Siswa", url: "/keuangan/tabungan", roles: ["admin", "kepala_sekolah", "keuangan"] },
+      { title: "Laporan Per Siswa", url: "/keuangan/laporan-siswa", roles: ["admin", "kepala_sekolah", "keuangan"] },
       { title: "Jurnal Umum", url: "/keuangan/jurnal", roles: ["admin", "kepala_sekolah", "keuangan"] },
       { title: "Buku Besar", url: "/keuangan/buku-besar", roles: ["admin", "kepala_sekolah", "keuangan"] },
       { title: "Laporan Keuangan", url: "/keuangan/laporan", roles: ["admin", "kepala_sekolah", "keuangan"] },
@@ -78,21 +73,10 @@ const menuItems: MenuItem[] = [
   {
     title: "CBE", url: "/cbe", icon: MonitorPlay,
     roles: ["admin", "kepala_sekolah", "guru"],
-    children: [
-      { title: "Bank Soal", url: "/cbe/bank-soal" },
-      { title: "Jadwal Ujian", url: "/cbe/jadwal" },
-      { title: "Pelaksanaan Ujian", url: "/cbe/pelaksanaan" },
-      { title: "Hasil Ujian", url: "/cbe/hasil" },
-    ],
   },
   {
     title: "SIMTAKA", url: "/simtaka", icon: BookOpen,
     roles: ["admin", "kepala_sekolah", "pustakawan"],
-    children: [
-      { title: "Data Buku", url: "/simtaka/buku" },
-      { title: "Peminjaman", url: "/simtaka/peminjaman" },
-      { title: "Pengembalian", url: "/simtaka/pengembalian" },
-    ],
   },
   {
     title: "Buletin", url: "/buletin", icon: Megaphone,
@@ -103,8 +87,8 @@ const menuItems: MenuItem[] = [
     roles: ["admin"],
     children: [
       { title: "Identitas Sekolah", url: "/pengaturan/sekolah" },
-      { title: "Referensi Data", url: "/pengaturan/referensi" },
       { title: "Manajemen Pengguna", url: "/pengaturan/pengguna" },
+      { title: "Manajemen Ortu", url: "/pengaturan/ortu" },
     ],
   },
 ];
