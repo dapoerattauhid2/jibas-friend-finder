@@ -930,25 +930,27 @@ Gunakan urutan ini saat membangun fitur baru, khususnya bila menggunakan **Lovab
 
 ### Fase 4 — Kepegawaian Lengkap
 
-- [ ] **Detail Riwayat Pegawai** — jabatan, golongan, gaji, pendidikan
-- [ ] **Diklat & Sertifikasi** — riwayat pelatihan dan sertifikat
-- [ ] **Jadwal Pegawai** — jadwal mengajar/tugas per pegawai
-- [ ] **Statistik Kepegawaian** — grafik per golongan, jenis kelamin, usia
-- [ ] **Struktur Organisasi** — visualisasi hierarki jabatan
+- [x] **Detail Riwayat Pegawai** — jabatan, golongan, gaji, pendidikan (`DetailPegawai.tsx`)
+- [x] **Diklat & Sertifikasi** — riwayat pelatihan dan sertifikat (`DetailPegawai.tsx`)
+- [x] **Jadwal Pegawai** — jadwal mengajar/tugas per pegawai (`JadwalPegawai.tsx`)
+- [x] **Statistik Kepegawaian** — grafik per golongan, jenis kelamin, usia (`StatistikPegawai.tsx`)
+- [x] **Struktur Organisasi** — visualisasi hierarki jabatan (`StrukturOrganisasi.tsx`)
+- [x] **DUK** — Daftar Urut Kepangkatan (`DUK.tsx`)
+- [x] **Cetak Biodata** — cetak biodata pegawai (`CetakBiodata.tsx`)
 
 ### Fase 5 — Modul Tambahan
 
-- [ ] **CBE** — penilaian berbasis kompetensi dasar (KD)
-- [ ] **SIMTAKA** — katalog buku, peminjaman, pengembalian
-- [ ] **Buletin** — pengumuman sekolah
+- [x] **CBE** — penilaian berbasis kompetensi dasar (KD) (`CBE.tsx` + `LaporanPencapaian.tsx` + `RemedialPengayaan.tsx`)
+- [x] **SIMTAKA** — katalog buku, peminjaman, pengembalian (`Simtaka.tsx`)
+- [x] **Buletin** — pengumuman sekolah (`Buletin.tsx`)
 
 ### Fase 6 — Portal & Integrasi
 
-- [ ] **Portal Orang Tua/Siswa** — lihat nilai, presensi, tagihan
-- [ ] **SMS/WhatsApp Gateway** — notifikasi tunggakan, nilai rapor
-- [ ] **SchoolPay / Online Payment** — integrasi payment gateway
-- [ ] **InfoGuru** — portal mandiri untuk guru
-- [ ] **Anjungan (Kiosk)** — layanan mandiri di sekolah
+- [x] **Portal Orang Tua/Siswa** — lihat nilai, presensi, tagihan (`portal/`)
+- [x] **SMS/WhatsApp Gateway** — notifikasi tunggakan, nilai rapor (`NotifikasiGateway.tsx`)
+- [x] **SchoolPay / Online Payment** — integrasi payment gateway (`OnlinePayment.tsx`)
+- [x] **InfoGuru** — portal mandiri untuk guru (`InfoGuru.tsx`)
+- [x] **Anjungan (Kiosk)** — layanan mandiri di sekolah (`Anjungan.tsx`)
 
 ---
 
