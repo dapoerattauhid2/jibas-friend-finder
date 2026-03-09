@@ -310,3 +310,235 @@ function TabPresensi({ pegawaiId }: { pegawaiId: string }) {
     </div>
   );
 }
+
+// ─── Golongan/Pangkat ───
+function TabGolongan({ pegawaiId, canEdit }: { pegawaiId: string; canEdit: boolean }) {
+  const qc = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ golongan: "", pangkat: "", tmt: "", sampai: "", sk_nomor: "", sk_tanggal: "", keterangan: "" });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["riwayat_golongan", pegawaiId],
+    queryFn: async () => { const { data } = await supabase.from("riwayat_golongan").select("*").eq("pegawai_id", pegawaiId).order("tmt", { ascending: false }); return data || []; },
+  });
+
+  const saveMut = useMutation({
+    mutationFn: async (vals: any) => { const { error } = await supabase.from("riwayat_golongan").insert({ ...vals, pegawai_id: pegawaiId }); if (error) throw error; },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["riwayat_golongan"] }); toast.success("Riwayat golongan ditambahkan"); setDialogOpen(false); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const columns: DataTableColumn<any>[] = [
+    { key: "golongan", label: "Golongan" },
+    { key: "pangkat", label: "Pangkat", render: v => (v as string) || "-" },
+    { key: "tmt", label: "TMT", render: v => v ? format(new Date(v as string), "dd MMM yyyy", { locale: idLocale }) : "-" },
+    { key: "sampai", label: "Sampai", render: v => v ? format(new Date(v as string), "dd MMM yyyy", { locale: idLocale }) : "Sekarang" },
+    { key: "sk_nomor", label: "No SK", render: v => (v as string) || "-" },
+  ];
+
+  return (
+    <div className="space-y-4 pt-4">
+      {canEdit && <div className="flex justify-end"><Button onClick={() => { setForm({ golongan: "", pangkat: "", tmt: "", sampai: "", sk_nomor: "", sk_tanggal: "", keterangan: "" }); setDialogOpen(true); }}><Plus className="h-4 w-4 mr-2" />Tambah</Button></div>}
+      <DataTable columns={columns} data={data || []} loading={isLoading} searchable={false} pageSize={10} />
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Tambah Riwayat Golongan</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Golongan *</Label><Input value={form.golongan} onChange={e => setForm({ ...form, golongan: e.target.value })} placeholder="III/a" /></div>
+              <div><Label>Pangkat</Label><Input value={form.pangkat} onChange={e => setForm({ ...form, pangkat: e.target.value })} placeholder="Penata Muda" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>TMT</Label><Input type="date" value={form.tmt} onChange={e => setForm({ ...form, tmt: e.target.value })} /></div>
+              <div><Label>Sampai</Label><Input type="date" value={form.sampai} onChange={e => setForm({ ...form, sampai: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>No SK</Label><Input value={form.sk_nomor} onChange={e => setForm({ ...form, sk_nomor: e.target.value })} /></div>
+              <div><Label>Tgl SK</Label><Input type="date" value={form.sk_tanggal} onChange={e => setForm({ ...form, sk_tanggal: e.target.value })} /></div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
+            <Button onClick={() => saveMut.mutate({ ...form, tmt: form.tmt || null, sampai: form.sampai || null, sk_tanggal: form.sk_tanggal || null })} disabled={!form.golongan || saveMut.isPending}>Simpan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── Riwayat Gaji ───
+function TabGaji({ pegawaiId, canEdit }: { pegawaiId: string; canEdit: boolean }) {
+  const qc = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ gaji_pokok: "", tunjangan: "", potongan: "", berlaku_mulai: "", berlaku_sampai: "", sk_nomor: "", keterangan: "" });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["riwayat_gaji", pegawaiId],
+    queryFn: async () => { const { data } = await supabase.from("riwayat_gaji").select("*").eq("pegawai_id", pegawaiId).order("berlaku_mulai", { ascending: false }); return data || []; },
+  });
+
+  const saveMut = useMutation({
+    mutationFn: async (vals: any) => { const { error } = await supabase.from("riwayat_gaji").insert({ ...vals, pegawai_id: pegawaiId }); if (error) throw error; },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["riwayat_gaji"] }); toast.success("Riwayat gaji ditambahkan"); setDialogOpen(false); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const fmtRp = (n: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
+
+  const columns: DataTableColumn<any>[] = [
+    { key: "gaji_pokok", label: "Gaji Pokok", render: v => fmtRp(Number(v) || 0) },
+    { key: "tunjangan", label: "Tunjangan", render: v => fmtRp(Number(v) || 0) },
+    { key: "potongan", label: "Potongan", render: v => fmtRp(Number(v) || 0) },
+    { key: "total", label: "Total", render: v => <span className="font-semibold">{fmtRp(Number(v) || 0)}</span> },
+    { key: "berlaku_mulai", label: "Mulai", render: v => v ? format(new Date(v as string), "dd MMM yyyy", { locale: idLocale }) : "-" },
+    { key: "berlaku_sampai", label: "Sampai", render: v => v ? format(new Date(v as string), "dd MMM yyyy", { locale: idLocale }) : "Sekarang" },
+  ];
+
+  return (
+    <div className="space-y-4 pt-4">
+      {canEdit && <div className="flex justify-end"><Button onClick={() => { setForm({ gaji_pokok: "", tunjangan: "", potongan: "", berlaku_mulai: "", berlaku_sampai: "", sk_nomor: "", keterangan: "" }); setDialogOpen(true); }}><Plus className="h-4 w-4 mr-2" />Tambah</Button></div>}
+      <DataTable columns={columns} data={data || []} loading={isLoading} searchable={false} pageSize={10} />
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Tambah Riwayat Gaji</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Gaji Pokok *</Label><Input type="number" value={form.gaji_pokok} onChange={e => setForm({ ...form, gaji_pokok: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Tunjangan</Label><Input type="number" value={form.tunjangan} onChange={e => setForm({ ...form, tunjangan: e.target.value })} /></div>
+              <div><Label>Potongan</Label><Input type="number" value={form.potongan} onChange={e => setForm({ ...form, potongan: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Berlaku Mulai</Label><Input type="date" value={form.berlaku_mulai} onChange={e => setForm({ ...form, berlaku_mulai: e.target.value })} /></div>
+              <div><Label>Berlaku Sampai</Label><Input type="date" value={form.berlaku_sampai} onChange={e => setForm({ ...form, berlaku_sampai: e.target.value })} /></div>
+            </div>
+            <div><Label>No SK</Label><Input value={form.sk_nomor} onChange={e => setForm({ ...form, sk_nomor: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
+            <Button onClick={() => saveMut.mutate({ gaji_pokok: Number(form.gaji_pokok) || 0, tunjangan: Number(form.tunjangan) || 0, potongan: Number(form.potongan) || 0, berlaku_mulai: form.berlaku_mulai || null, berlaku_sampai: form.berlaku_sampai || null, sk_nomor: form.sk_nomor || null, keterangan: form.keterangan || null })} disabled={!form.gaji_pokok || saveMut.isPending}>Simpan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── Sertifikasi ───
+function TabSertifikasi({ pegawaiId, canEdit }: { pegawaiId: string; canEdit: boolean }) {
+  const qc = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ jenis: "", nomor_sertifikat: "", tanggal_terbit: "", tanggal_berlaku: "", penerbit: "", keterangan: "" });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["sertifikasi_guru", pegawaiId],
+    queryFn: async () => { const { data } = await supabase.from("sertifikasi_guru").select("*").eq("pegawai_id", pegawaiId).order("tanggal_terbit", { ascending: false }); return data || []; },
+  });
+
+  const saveMut = useMutation({
+    mutationFn: async (vals: any) => { const { error } = await supabase.from("sertifikasi_guru").insert({ ...vals, pegawai_id: pegawaiId }); if (error) throw error; },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["sertifikasi_guru"] }); toast.success("Sertifikasi ditambahkan"); setDialogOpen(false); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const columns: DataTableColumn<any>[] = [
+    { key: "jenis", label: "Jenis Sertifikasi" },
+    { key: "nomor_sertifikat", label: "Nomor", render: v => (v as string) || "-" },
+    { key: "penerbit", label: "Penerbit", render: v => (v as string) || "-" },
+    { key: "tanggal_terbit", label: "Terbit", render: v => v ? format(new Date(v as string), "dd MMM yyyy", { locale: idLocale }) : "-" },
+    { key: "tanggal_berlaku", label: "Berlaku s/d", render: v => v ? format(new Date(v as string), "dd MMM yyyy", { locale: idLocale }) : "Selamanya" },
+  ];
+
+  return (
+    <div className="space-y-4 pt-4">
+      {canEdit && <div className="flex justify-end"><Button onClick={() => { setForm({ jenis: "", nomor_sertifikat: "", tanggal_terbit: "", tanggal_berlaku: "", penerbit: "", keterangan: "" }); setDialogOpen(true); }}><Plus className="h-4 w-4 mr-2" />Tambah</Button></div>}
+      <DataTable columns={columns} data={data || []} loading={isLoading} searchable={false} pageSize={10} />
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Tambah Sertifikasi</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Jenis Sertifikasi *</Label><Input value={form.jenis} onChange={e => setForm({ ...form, jenis: e.target.value })} placeholder="Sertifikasi Pendidik" /></div>
+            <div><Label>Nomor Sertifikat</Label><Input value={form.nomor_sertifikat} onChange={e => setForm({ ...form, nomor_sertifikat: e.target.value })} /></div>
+            <div><Label>Penerbit</Label><Input value={form.penerbit} onChange={e => setForm({ ...form, penerbit: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Tanggal Terbit</Label><Input type="date" value={form.tanggal_terbit} onChange={e => setForm({ ...form, tanggal_terbit: e.target.value })} /></div>
+              <div><Label>Berlaku Sampai</Label><Input type="date" value={form.tanggal_berlaku} onChange={e => setForm({ ...form, tanggal_berlaku: e.target.value })} /></div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
+            <Button onClick={() => saveMut.mutate({ ...form, tanggal_terbit: form.tanggal_terbit || null, tanggal_berlaku: form.tanggal_berlaku || null })} disabled={!form.jenis || saveMut.isPending}>Simpan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── Keluarga Pegawai ───
+function TabKeluarga({ pegawaiId, canEdit }: { pegawaiId: string; canEdit: boolean }) {
+  const qc = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ nama: "", hubungan: "", jenis_kelamin: "", tanggal_lahir: "", pekerjaan: "", keterangan: "" });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["keluarga_pegawai", pegawaiId],
+    queryFn: async () => { const { data } = await supabase.from("keluarga_pegawai").select("*").eq("pegawai_id", pegawaiId).order("hubungan"); return data || []; },
+  });
+
+  const saveMut = useMutation({
+    mutationFn: async (vals: any) => { const { error } = await supabase.from("keluarga_pegawai").insert({ ...vals, pegawai_id: pegawaiId }); if (error) throw error; },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["keluarga_pegawai"] }); toast.success("Data keluarga ditambahkan"); setDialogOpen(false); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const HUBUNGAN = ["Suami", "Istri", "Anak", "Orang Tua", "Lainnya"];
+
+  const columns: DataTableColumn<any>[] = [
+    { key: "nama", label: "Nama" },
+    { key: "hubungan", label: "Hubungan" },
+    { key: "jenis_kelamin", label: "JK", render: v => v === "L" ? "Laki-laki" : v === "P" ? "Perempuan" : "-" },
+    { key: "tanggal_lahir", label: "Tgl Lahir", render: v => v ? format(new Date(v as string), "dd MMM yyyy", { locale: idLocale }) : "-" },
+    { key: "pekerjaan", label: "Pekerjaan", render: v => (v as string) || "-" },
+  ];
+
+  return (
+    <div className="space-y-4 pt-4">
+      {canEdit && <div className="flex justify-end"><Button onClick={() => { setForm({ nama: "", hubungan: "", jenis_kelamin: "", tanggal_lahir: "", pekerjaan: "", keterangan: "" }); setDialogOpen(true); }}><Plus className="h-4 w-4 mr-2" />Tambah</Button></div>}
+      <DataTable columns={columns} data={data || []} loading={isLoading} searchable={false} pageSize={10} />
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Tambah Data Keluarga</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nama *</Label><Input value={form.nama} onChange={e => setForm({ ...form, nama: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Hubungan *</Label>
+                <Select value={form.hubungan} onValueChange={v => setForm({ ...form, hubungan: v })}>
+                  <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>{HUBUNGAN.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Jenis Kelamin</Label>
+                <Select value={form.jenis_kelamin} onValueChange={v => setForm({ ...form, jenis_kelamin: v })}>
+                  <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="L">Laki-laki</SelectItem>
+                    <SelectItem value="P">Perempuan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Tanggal Lahir</Label><Input type="date" value={form.tanggal_lahir} onChange={e => setForm({ ...form, tanggal_lahir: e.target.value })} /></div>
+              <div><Label>Pekerjaan</Label><Input value={form.pekerjaan} onChange={e => setForm({ ...form, pekerjaan: e.target.value })} /></div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
+            <Button onClick={() => saveMut.mutate({ ...form, tanggal_lahir: form.tanggal_lahir || null, jenis_kelamin: form.jenis_kelamin || null })} disabled={!form.nama || !form.hubungan || saveMut.isPending}>Simpan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
