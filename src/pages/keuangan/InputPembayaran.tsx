@@ -407,6 +407,15 @@ export default function InputPembayaran() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Hidden print layout */}
+      {lastPayment && (
+        <PrintKuitansi
+          payment={lastPayment}
+          kelasNama={kelasNama}
+          lembagaNama={lembagaNama}
+        />
+      )}
     </div>
   );
 }
