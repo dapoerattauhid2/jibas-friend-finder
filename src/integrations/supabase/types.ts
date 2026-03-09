@@ -236,6 +236,7 @@ export type Database = {
           keterangan: string | null
           nama: string
           nominal: number | null
+          tipe: string
         }
         Insert: {
           aktif?: boolean | null
@@ -245,6 +246,7 @@ export type Database = {
           keterangan?: string | null
           nama: string
           nominal?: number | null
+          tipe?: string
         }
         Update: {
           aktif?: boolean | null
@@ -254,6 +256,7 @@ export type Database = {
           keterangan?: string | null
           nama?: string
           nominal?: number | null
+          tipe?: string
         }
         Relationships: [
           {
