@@ -2,7 +2,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bell, LogOut, User, KeyRound, Home, FileText, CreditCard, History } from "lucide-react";
+import { Bell, LogOut, User, KeyRound, Home, FileText, CreditCard, History, CalendarDays, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
