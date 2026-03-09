@@ -79,12 +79,20 @@ export default function DetailPegawai() {
       <Tabs defaultValue="jabatan">
         <TabsList className="flex-wrap">
           <TabsTrigger value="jabatan">Riwayat Jabatan</TabsTrigger>
+          <TabsTrigger value="golongan">Golongan/Pangkat</TabsTrigger>
           <TabsTrigger value="pendidikan">Riwayat Pendidikan</TabsTrigger>
+          <TabsTrigger value="gaji">Riwayat Gaji</TabsTrigger>
+          <TabsTrigger value="sertifikasi">Sertifikasi</TabsTrigger>
+          <TabsTrigger value="keluarga">Data Keluarga</TabsTrigger>
           <TabsTrigger value="diklat">Diklat & Pelatihan</TabsTrigger>
           <TabsTrigger value="presensi">Presensi</TabsTrigger>
         </TabsList>
         <TabsContent value="jabatan"><TabRiwayatJabatan pegawaiId={id!} canEdit={canEdit} /></TabsContent>
+        <TabsContent value="golongan"><TabGolongan pegawaiId={id!} canEdit={canEdit} /></TabsContent>
         <TabsContent value="pendidikan"><TabRiwayatPendidikan pegawaiId={id!} canEdit={canEdit} /></TabsContent>
+        <TabsContent value="gaji"><TabGaji pegawaiId={id!} canEdit={canEdit} /></TabsContent>
+        <TabsContent value="sertifikasi"><TabSertifikasi pegawaiId={id!} canEdit={canEdit} /></TabsContent>
+        <TabsContent value="keluarga"><TabKeluarga pegawaiId={id!} canEdit={canEdit} /></TabsContent>
         <TabsContent value="diklat"><TabDiklat pegawaiId={id!} canEdit={canEdit} /></TabsContent>
         <TabsContent value="presensi"><TabPresensi pegawaiId={id!} /></TabsContent>
       </Tabs>
