@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   GraduationCap, BookOpen, Calendar, ClipboardList,
   UserPlus, ArrowRightLeft, Clock, Database,
+  BookOpenCheck, MessageSquare, FileText, BarChart3, Users,
 } from "lucide-react";
 
 const subModules = [
@@ -11,9 +12,14 @@ const subModules = [
   { title: "Mutasi Siswa", desc: "Pindah masuk/keluar dan status siswa", icon: ArrowRightLeft, url: "/akademik/mutasi" },
   { title: "Jadwal Pelajaran", desc: "Atur jadwal kelas dan guru", icon: Calendar, url: "/akademik/jadwal" },
   { title: "Presensi Siswa", desc: "Input dan rekap kehadiran harian", icon: Clock, url: "/akademik/presensi" },
-  { title: "Penilaian & Nilai", desc: "Input nilai dan cetak legger", icon: ClipboardList, url: "/akademik/penilaian" },
+  { title: "Presensi KBM", desc: "Presensi per mata pelajaran", icon: BookOpenCheck, url: "/akademik/presensi-kbm" },
+  { title: "Penilaian & Nilai", desc: "Input nilai, import/export Excel", icon: ClipboardList, url: "/akademik/penilaian" },
   { title: "Cetak Rapor", desc: "Cetak rapor siswa per semester", icon: BookOpen, url: "/akademik/rapor" },
+  { title: "Komentar Rapor", desc: "Komentar wali kelas & kepala sekolah", icon: MessageSquare, url: "/akademik/komentar-rapor" },
   { title: "Legger Nilai", desc: "Rekap nilai seluruh mapel per kelas", icon: ClipboardList, url: "/akademik/legger" },
+  { title: "RPP", desc: "Rencana Pelaksanaan Pembelajaran", icon: FileText, url: "/akademik/rpp" },
+  { title: "Statistik Siswa", desc: "Grafik dan statistik data siswa", icon: BarChart3, url: "/akademik/statistik" },
+  { title: "Data Alumni", desc: "Data siswa yang telah lulus", icon: Users, url: "/akademik/alumni" },
   { title: "Kalender Akademik", desc: "Jadwal kegiatan dan kalender sekolah", icon: Calendar, url: "/akademik/kalender" },
   { title: "Referensi Akademik", desc: "Mata pelajaran, kelas, tingkat", icon: Database, url: "/akademik/referensi" },
 ];
