@@ -86,7 +86,8 @@ const menuItems: MenuItem[] = [
       { title: "Presensi Pegawai", url: "/kepegawaian/presensi" },
       { title: "Jadwal Pegawai", url: "/kepegawaian/jadwal" },
       { title: "DUK", url: "/kepegawaian/duk" },
-      { title: "Statistik & Organisasi", url: "/kepegawaian/statistik" },
+      { title: "Statistik", url: "/kepegawaian/statistik" },
+      { title: "Struktur Organisasi", url: "/kepegawaian/struktur" },
     ],
   },
   {
