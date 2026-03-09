@@ -75,6 +75,8 @@ const menuItems: MenuItem[] = [
     children: [
       { title: "Data Pegawai", url: "/kepegawaian/pegawai" },
       { title: "Presensi Pegawai", url: "/kepegawaian/presensi" },
+      { title: "Jadwal Pegawai", url: "/kepegawaian/jadwal" },
+      { title: "Statistik & Organisasi", url: "/kepegawaian/statistik" },
     ],
   },
   {

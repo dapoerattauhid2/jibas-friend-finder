@@ -33,6 +33,8 @@ import BukuBesar from "./pages/keuangan/BukuBesar";
 import Kepegawaian from "./pages/Kepegawaian";
 import DataPegawai from "./pages/kepegawaian/DataPegawai";
 import PresensiPegawai from "./pages/kepegawaian/PresensiPegawai";
+import JadwalPegawai from "./pages/kepegawaian/JadwalPegawai";
+import StatistikPegawai from "./pages/kepegawaian/StatistikPegawai";
 import CBE from "./pages/CBE";
 import Simtaka from "./pages/Simtaka";
 import Buletin from "./pages/Buletin";
@@ -135,6 +137,8 @@ const App = () => (
                 <Route path="/kepegawaian/pegawai" element={<DataPegawai />} />
                 <Route path="/kepegawaian/pegawai/:id" element={<DetailPegawai />} />
                 <Route path="/kepegawaian/presensi" element={<PresensiPegawai />} />
+                <Route path="/kepegawaian/jadwal" element={<JadwalPegawai />} />
+                <Route path="/kepegawaian/statistik" element={<StatistikPegawai />} />
                 {/* CBE */}
                 <Route path="/cbe" element={<CBE />} />
                 <Route path="/cbe/:tab" element={<CBE />} />
