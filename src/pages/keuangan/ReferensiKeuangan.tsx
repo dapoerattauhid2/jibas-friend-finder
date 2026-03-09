@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,7 @@ import {
 } from "@/hooks/useKeuangan";
 import { useAllAkunRekening, useCreateAkunRekening, useUpdateAkunRekening, useDeleteAkunRekening, useAkunByJenis, usePengaturanAkun, useUpdatePengaturanAkun } from "@/hooks/useJurnal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Power, AlertTriangle, Save } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, Save, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -38,12 +40,14 @@ export default function ReferensiKeuangan() {
           <TabsTrigger value="akun">Akun Rekening</TabsTrigger>
           <TabsTrigger value="pengaturan-akun">Pengaturan Akun</TabsTrigger>
           <TabsTrigger value="tahun-buku">Tahun Buku</TabsTrigger>
+          <TabsTrigger value="template">Template Nomor</TabsTrigger>
         </TabsList>
         <TabsContent value="penerimaan"><TabJenisPembayaran /></TabsContent>
         <TabsContent value="pengeluaran"><TabJenisPengeluaran /></TabsContent>
         <TabsContent value="akun"><TabAkunRekening /></TabsContent>
         <TabsContent value="pengaturan-akun"><TabPengaturanAkun /></TabsContent>
         <TabsContent value="tahun-buku"><TabTahunBuku /></TabsContent>
+        <TabsContent value="template"><TabTemplateNomor /></TabsContent>
       </Tabs>
     </div>
   );
@@ -521,19 +525,27 @@ function TabTahunBuku() {
     { key: "tanggal_selesai", label: "Selesai", render: (v) => v ? format(new Date(v as string), "dd MMM yyyy", { locale: idLocale }) : "-" },
     {
       key: "aktif", label: "Status",
-      render: (v) => v
-        ? <Badge className="bg-success text-success-foreground">Aktif</Badge>
-        : <Badge variant="outline" className="text-muted-foreground">Nonaktif</Badge>,
+      render: (v, r: any) => (
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <Switch
+            checked={!!v}
+            onCheckedChange={(checked) => {
+              if (checked) {
+                aktifkanMut.mutate({ id: r.id, nama: r.nama });
+              }
+            }}
+            disabled={!!v}
+          />
+          <span className={v ? "text-success font-medium" : "text-muted-foreground"}>
+            {v ? "Aktif" : "Nonaktif"}
+          </span>
+        </div>
+      ),
     },
     {
       key: "aksi", label: "Aksi",
       render: (_, r: any) => (
         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-          {!r.aktif && (
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-success" title="Aktifkan" onClick={() => aktifkanMut.mutate({ id: r.id, nama: r.nama })}>
-              <Power className="h-4 w-4" />
-            </Button>
-          )}
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(r.id)}><Trash2 className="h-4 w-4" /></Button>
         </div>
@@ -578,5 +590,91 @@ function TabTahunBuku() {
         onConfirm={() => { if (deleteId) deleteMut.mutate(deleteId); setDeleteId(null); }}
       />
     </>
+  );
+}
+
+// ─── Tab Template Nomor Kuitansi / Jurnal ───
+function TabTemplateNomor() {
+  const qc = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const [values, setValues] = useState<Record<string, string>>({});
+
+  const { data: templates, isLoading } = useQuery({
+    queryKey: ["pengaturan_template"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pengaturan_template")
+        .select("*")
+        .order("kode_template");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  useEffect(() => {
+    if (templates) {
+      const map: Record<string, string> = {};
+      templates.forEach((t: any) => { map[t.kode_template] = t.template; });
+      setValues(map);
+    }
+  }, [templates]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      for (const t of templates || []) {
+        const newVal = values[t.kode_template];
+        if (newVal !== undefined && newVal !== t.template) {
+          const { error } = await supabase
+            .from("pengaturan_template")
+            .update({ template: newVal })
+            .eq("id", t.id);
+          if (error) throw error;
+        }
+      }
+      qc.invalidateQueries({ queryKey: ["pengaturan_template"] });
+      toast.success("Template berhasil disimpan");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return <Card className="mt-4"><CardContent className="pt-6"><div className="animate-pulse space-y-4">{[1,2,3].map(i => <div key={i} className="h-16 bg-muted rounded" />)}</div></CardContent></Card>;
+  }
+
+  return (
+    <Card className="mt-4">
+      <CardContent className="pt-6 space-y-6">
+        <Alert>
+          <FileText className="h-4 w-4" />
+          <AlertDescription>
+            Variabel yang tersedia: <code className="text-primary font-mono text-xs">{"{TAHUN}"}</code> <code className="text-primary font-mono text-xs">{"{BULAN}"}</code> <code className="text-primary font-mono text-xs">{"{NOMOR}"}</code> <code className="text-primary font-mono text-xs">{"{LEMBAGA}"}</code>
+            <br />
+            Contoh: <code className="font-mono text-xs">KWT-{"{TAHUN}"}-{"{BULAN}"}-{"{NOMOR}"}</code> → <span className="font-medium">KWT-2026-03-001</span>
+          </AlertDescription>
+        </Alert>
+
+        {(templates || []).map((t: any) => (
+          <div key={t.kode_template} className="space-y-2 p-4 border rounded-lg">
+            <Label className="text-base font-semibold">{t.label}</Label>
+            {t.keterangan && <p className="text-sm text-muted-foreground">{t.keterangan}</p>}
+            <Input
+              value={values[t.kode_template] || ""}
+              onChange={(e) => setValues(prev => ({ ...prev, [t.kode_template]: e.target.value }))}
+              placeholder={t.template}
+              className="font-mono"
+            />
+          </div>
+        ))}
+
+        <Button onClick={handleSave} disabled={saving}>
+          <Save className="h-4 w-4 mr-2" />
+          {saving ? "Menyimpan..." : "Simpan Template"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

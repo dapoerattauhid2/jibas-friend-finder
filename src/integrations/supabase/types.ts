@@ -1397,6 +1397,33 @@ export type Database = {
           },
         ]
       }
+      pengaturan_template: {
+        Row: {
+          id: string
+          keterangan: string | null
+          kode_template: string
+          label: string
+          template: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          keterangan?: string | null
+          kode_template: string
+          label: string
+          template?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          keterangan?: string | null
+          kode_template?: string
+          label?: string
+          template?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       pengeluaran: {
         Row: {
           created_at: string | null
