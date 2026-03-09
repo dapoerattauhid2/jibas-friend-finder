@@ -43,7 +43,10 @@ export default function DetailPegawai() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <Button variant="ghost" onClick={() => navigate("/kepegawaian/pegawai")}><ArrowLeft className="h-4 w-4 mr-2" />Kembali</Button>
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" onClick={() => navigate("/kepegawaian/pegawai")}><ArrowLeft className="h-4 w-4 mr-2" />Kembali</Button>
+        <Button variant="outline" size="sm" onClick={() => navigate(`/kepegawaian/pegawai/${id}/biodata`)}><Printer className="h-4 w-4 mr-2" />Cetak Biodata</Button>
+      </div>
 
       {/* Identity Card */}
       <Card>
