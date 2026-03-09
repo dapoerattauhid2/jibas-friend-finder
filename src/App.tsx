@@ -45,6 +45,7 @@ import JadwalPegawai from "./pages/kepegawaian/JadwalPegawai";
 import StatistikPegawai from "./pages/kepegawaian/StatistikPegawai";
 import DUK from "./pages/kepegawaian/DUK";
 import CetakBiodata from "./pages/kepegawaian/CetakBiodata";
+import StrukturOrganisasi from "./pages/kepegawaian/StrukturOrganisasi";
 import CBE from "./pages/CBE";
 import Simtaka from "./pages/Simtaka";
 import Buletin from "./pages/Buletin";
@@ -77,6 +78,7 @@ import InfoGuru from "./pages/InfoGuru";
 import Anjungan from "./pages/Anjungan";
 // Pengaturan
 import NotifikasiGateway from "./pages/pengaturan/NotifikasiGateway";
+import BackupExport from "./pages/pengaturan/BackupExport";
 
 const queryClient = new QueryClient();
 
@@ -161,6 +163,7 @@ const App = () => (
                 <Route path="/kepegawaian/jadwal" element={<JadwalPegawai />} />
                 <Route path="/kepegawaian/duk" element={<DUK />} />
                 <Route path="/kepegawaian/statistik" element={<StatistikPegawai />} />
+                <Route path="/kepegawaian/struktur" element={<StrukturOrganisasi />} />
                 {/* CBE */}
                 <Route path="/cbe" element={<CBE />} />
                 <Route path="/cbe/:tab" element={<CBE />} />
@@ -175,6 +178,7 @@ const App = () => (
                 <Route path="/pengaturan/pengguna" element={<ManajemenPengguna />} />
                 <Route path="/pengaturan/ortu" element={<ManajemenOrtu />} />
                 <Route path="/pengaturan/notifikasi" element={<NotifikasiGateway />} />
+                <Route path="/pengaturan/backup" element={<BackupExport />} />
                 <Route path="/pengaturan/:tab" element={<Pengaturan />} />
               </Route>
             </Route>

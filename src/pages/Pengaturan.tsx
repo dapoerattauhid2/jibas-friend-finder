@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { School, Users, Database, Info, UserCheck } from "lucide-react";
+import { School, Users, Database, Info, UserCheck, Download, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ProfilYayasan from "./pengaturan/ProfilYayasan";
 import ManajemenPengguna from "./pengaturan/ManajemenPengguna";
@@ -9,6 +9,8 @@ const quickLinks = [
   { title: "Profil Yayasan", desc: "Identitas yayasan dan data lembaga", icon: School, tab: "sekolah" },
   { title: "Manajemen Pengguna", desc: "Kelola akun dan hak akses pengguna", icon: Users, tab: "pengguna" },
   { title: "Kelola Orang Tua", desc: "Akun orang tua dan hubungan siswa", icon: UserCheck, tab: "ortu" },
+  { title: "Notifikasi Gateway", desc: "Konfigurasi WhatsApp & Telegram", icon: Bell, tab: "notifikasi" },
+  { title: "Backup & Export", desc: "Export seluruh data ke Excel", icon: Download, tab: "backup" },
   { title: "Referensi Data", desc: "Kelas, tingkat, angkatan, tahun ajaran", icon: Database, tab: "referensi" },
 ];
 

@@ -930,25 +930,27 @@ Gunakan urutan ini saat membangun fitur baru, khususnya bila menggunakan **Lovab
 
 ### Fase 4 — Kepegawaian Lengkap
 
-- [ ] **Detail Riwayat Pegawai** — jabatan, golongan, gaji, pendidikan
-- [ ] **Diklat & Sertifikasi** — riwayat pelatihan dan sertifikat
-- [ ] **Jadwal Pegawai** — jadwal mengajar/tugas per pegawai
-- [ ] **Statistik Kepegawaian** — grafik per golongan, jenis kelamin, usia
-- [ ] **Struktur Organisasi** — visualisasi hierarki jabatan
+- [x] **Detail Riwayat Pegawai** — jabatan, golongan, gaji, pendidikan (`DetailPegawai.tsx`)
+- [x] **Diklat & Sertifikasi** — riwayat pelatihan dan sertifikat (`DetailPegawai.tsx`)
+- [x] **Jadwal Pegawai** — jadwal mengajar/tugas per pegawai (`JadwalPegawai.tsx`)
+- [x] **Statistik Kepegawaian** — grafik per golongan, jenis kelamin, usia (`StatistikPegawai.tsx`)
+- [x] **Struktur Organisasi** — visualisasi hierarki jabatan (`StrukturOrganisasi.tsx`)
+- [x] **DUK** — Daftar Urut Kepangkatan (`DUK.tsx`)
+- [x] **Cetak Biodata** — cetak biodata pegawai (`CetakBiodata.tsx`)
 
 ### Fase 5 — Modul Tambahan
 
-- [ ] **CBE** — penilaian berbasis kompetensi dasar (KD)
-- [ ] **SIMTAKA** — katalog buku, peminjaman, pengembalian
-- [ ] **Buletin** — pengumuman sekolah
+- [x] **CBE** — penilaian berbasis kompetensi dasar (KD) (`CBE.tsx` + `LaporanPencapaian.tsx` + `RemedialPengayaan.tsx`)
+- [x] **SIMTAKA** — katalog buku, peminjaman, pengembalian (`Simtaka.tsx`)
+- [x] **Buletin** — pengumuman sekolah (`Buletin.tsx`)
 
 ### Fase 6 — Portal & Integrasi
 
-- [ ] **Portal Orang Tua/Siswa** — lihat nilai, presensi, tagihan
-- [ ] **SMS/WhatsApp Gateway** — notifikasi tunggakan, nilai rapor
-- [ ] **SchoolPay / Online Payment** — integrasi payment gateway
-- [ ] **InfoGuru** — portal mandiri untuk guru
-- [ ] **Anjungan (Kiosk)** — layanan mandiri di sekolah
+- [x] **Portal Orang Tua/Siswa** — lihat nilai, presensi, tagihan (`portal/`)
+- [x] **SMS/WhatsApp Gateway** — notifikasi tunggakan, nilai rapor (`NotifikasiGateway.tsx`)
+- [x] **SchoolPay / Online Payment** — integrasi payment gateway (`OnlinePayment.tsx`)
+- [x] **InfoGuru** — portal mandiri untuk guru (`InfoGuru.tsx`)
+- [x] **Anjungan (Kiosk)** — layanan mandiri di sekolah (`Anjungan.tsx`)
 
 ---
 
@@ -960,23 +962,23 @@ Tabel ini adalah **backlog lengkap** fitur dari JIBAS 32.0 yang perlu diimplemen
 
 | Fitur | Modul PHP | Status |
 |---|---|---|
-| Jadwal pelajaran per kelas | `jadwal/jadwal_kelas_*.php` | ❌ Belum |
-| Jadwal mengajar guru | `jadwal/jadwal_guru_*.php` | ❌ Belum |
-| Presensi harian siswa | `presensi/input_presensi_*.php` | ❌ Belum |
-| Presensi per pelajaran (KBM) | `presensi/presensikeg.siswa2.*.php` | ❌ Belum |
-| Rekap absensi siswa | `presensi/lap_*.php` | ❌ Belum |
-| Input nilai per ujian | `penilaian/formpenilaian.php` | ❌ Belum |
-| Import nilai dari Excel | `penilaian/impnilai.php` | ❌ Belum |
-| Export nilai ke Excel | `penilaian/expnilai.php` | ❌ Belum |
-| Hitung nilai akhir | `penilaian/hitung_nilai_akhir.php` | ❌ Belum |
-| Cetak rapor (Word/HTML) | `penilaian/cetak_rapor_kelas.php` | ❌ Belum |
-| Legger nilai per kelas | `penilaian/legger.kelas.php` | ❌ Belum |
-| Komentar rapor | `penilaian/komentar.*.php` | ❌ Belum |
-| RPP (Rencana Pelaksanaan Pembelajaran) | `penilaian/rpp.php` | ❌ Belum |
-| Kalender akademik | `jadwal/kalender_*.php` | ❌ Belum |
-| Statistik siswa (grafik) | `siswa/statistik_*.php` | ❌ Belum |
-| Data alumni | `siswa/alumni_*.php` | ❌ Belum |
-| PSB — lengkap dengan pembayaran | `siswa_baru/` | ⚠️ Partial |
+| Jadwal pelajaran per kelas | `jadwal/jadwal_kelas_*.php` | ✅ Selesai (`JadwalPelajaran.tsx`) |
+| Jadwal mengajar guru | `jadwal/jadwal_guru_*.php` | ✅ Selesai (`JadwalPegawai.tsx`) |
+| Presensi harian siswa | `presensi/input_presensi_*.php` | ✅ Selesai (`PresensiSiswa.tsx`) |
+| Presensi per pelajaran (KBM) | `presensi/presensikeg.siswa2.*.php` | ✅ Selesai (`PresensiKBM.tsx`) |
+| Rekap absensi siswa | `presensi/lap_*.php` | ✅ Selesai (via `PresensiSiswa.tsx`) |
+| Input nilai per ujian | `penilaian/formpenilaian.php` | ✅ Selesai (`Penilaian.tsx`) |
+| Import nilai dari Excel | `penilaian/impnilai.php` | ⚠️ Partial |
+| Export nilai ke Excel | `penilaian/expnilai.php` | ✅ Selesai (via `ExportButton.tsx`) |
+| Hitung nilai akhir | `penilaian/hitung_nilai_akhir.php` | ✅ Selesai (edge function `hitung-nilai-akhir`) |
+| Cetak rapor (Word/HTML) | `penilaian/cetak_rapor_kelas.php` | ✅ Selesai (`CetakRapor.tsx`) |
+| Legger nilai per kelas | `penilaian/legger.kelas.php` | ✅ Selesai (`LeggerNilai.tsx`) |
+| Komentar rapor | `penilaian/komentar.*.php` | ✅ Selesai (`KomentarRapor.tsx`) |
+| RPP (Rencana Pelaksanaan Pembelajaran) | `penilaian/rpp.php` | ✅ Selesai (`RPP.tsx`) |
+| Kalender akademik | `jadwal/kalender_*.php` | ✅ Selesai (`KalenderAkademik.tsx`) |
+| Statistik siswa (grafik) | `siswa/statistik_*.php` | ✅ Selesai (`StatistikSiswa.tsx`) |
+| Data alumni | `siswa/alumni_*.php` | ✅ Selesai (`DataAlumni.tsx`) |
+| PSB — lengkap dengan pembayaran | `siswa_baru/` | ✅ Selesai (`PSB.tsx` + `PembayaranPSB.tsx`) |
 
 ### Keuangan
 
@@ -1002,19 +1004,19 @@ Tabel ini adalah **backlog lengkap** fitur dari JIBAS 32.0 yang perlu diimplemen
 
 | Fitur | Modul PHP | Status |
 |---|---|---|
-| Riwayat jabatan lengkap | `pegawai/daftarjabatan.php` | ❌ Belum |
-| Riwayat golongan/pangkat | `pegawai/daftargolongan.php` | ❌ Belum |
-| DUK (Daftar Urut Kepangkatan) | `pegawai/dukpangkat.php` | ❌ Belum |
-| Riwayat gaji | `pegawai/daftargaji.php` | ❌ Belum |
-| Riwayat pendidikan | `pegawai/daftarsekolah.php` | ❌ Belum |
-| Sertifikasi guru | `pegawai/daftarserti.php` | ❌ Belum |
-| Diklat/pelatihan | `pegawai/daftardiklat.php` | ❌ Belum |
-| Data keluarga | `pegawai/daftarkeluarga.php` | ❌ Belum |
-| Jadwal pegawai | `pegawai/jadwal*.php` | ❌ Belum |
-| Statistik kepegawaian | `pegawai/statistik.php` | ❌ Belum |
-| Struktur organisasi | `pegawai/struktur.php` | ❌ Belum |
-| Pensiun | `pegawai/daftarpensiun.php` | ❌ Belum |
-| Cetak biodata pegawai | `pegawai/daftarpribadi_cetak.php` | ❌ Belum |
+| Riwayat jabatan lengkap | `pegawai/daftarjabatan.php` | ✅ Selesai (`DetailPegawai.tsx`) |
+| Riwayat golongan/pangkat | `pegawai/daftargolongan.php` | ✅ Selesai (`DetailPegawai.tsx`) |
+| DUK (Daftar Urut Kepangkatan) | `pegawai/dukpangkat.php` | ✅ Selesai (`DUK.tsx`) |
+| Riwayat gaji | `pegawai/daftargaji.php` | ✅ Selesai (`DetailPegawai.tsx`) |
+| Riwayat pendidikan | `pegawai/daftarsekolah.php` | ✅ Selesai (`DetailPegawai.tsx`) |
+| Sertifikasi guru | `pegawai/daftarserti.php` | ✅ Selesai (`DetailPegawai.tsx`) |
+| Diklat/pelatihan | `pegawai/daftardiklat.php` | ✅ Selesai (`DetailPegawai.tsx`) |
+| Data keluarga | `pegawai/daftarkeluarga.php` | ✅ Selesai (`DetailPegawai.tsx`) |
+| Jadwal pegawai | `pegawai/jadwal*.php` | ✅ Selesai (`JadwalPegawai.tsx`) |
+| Statistik kepegawaian | `pegawai/statistik.php` | ✅ Selesai (`StatistikPegawai.tsx`) |
+| Struktur organisasi | `pegawai/struktur.php` | ✅ Selesai (`StrukturOrganisasi.tsx`) |
+| Pensiun | `pegawai/daftarpensiun.php` | ✅ Selesai (via `DetailPegawai.tsx`) |
+| Cetak biodata pegawai | `pegawai/daftarpribadi_cetak.php` | ✅ Selesai (`CetakBiodata.tsx`) |
 
 ---
 

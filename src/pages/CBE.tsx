@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useParams } from "react-router-dom";
+import LaporanPencapaian from "./cbe/LaporanPencapaian";
+import RemedialPengayaan from "./cbe/RemedialPengayaan";
 
 export default function CBE() {
   const { tab } = useParams();
@@ -30,14 +32,18 @@ export default function CBE() {
         <p className="text-sm text-muted-foreground">Competency-Based Education — Penilaian berbasis Kompetensi Dasar</p>
       </div>
       <Tabs defaultValue={tab || "setup-kd"}>
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="setup-kd">Setup KD</TabsTrigger>
           <TabsTrigger value="setup-kkm">Setup KKM</TabsTrigger>
           <TabsTrigger value="input-nilai">Input Nilai KD</TabsTrigger>
+          <TabsTrigger value="laporan">Laporan Pencapaian</TabsTrigger>
+          <TabsTrigger value="remedial">Remedial & Pengayaan</TabsTrigger>
         </TabsList>
         <TabsContent value="setup-kd"><SetupKD /></TabsContent>
         <TabsContent value="setup-kkm"><SetupKKM /></TabsContent>
         <TabsContent value="input-nilai"><InputNilaiKD /></TabsContent>
+        <TabsContent value="laporan"><LaporanPencapaian /></TabsContent>
+        <TabsContent value="remedial"><RemedialPengayaan /></TabsContent>
       </Tabs>
     </div>
   );

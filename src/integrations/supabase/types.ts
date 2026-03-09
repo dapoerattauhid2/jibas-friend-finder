@@ -2061,6 +2061,104 @@ export type Database = {
           },
         ]
       }
+      remedial: {
+        Row: {
+          created_at: string | null
+          id: string
+          jenis: string
+          kd_id: string
+          kelas_id: string | null
+          keterangan: string | null
+          nilai_awal: number | null
+          nilai_remedial: number | null
+          semester_id: string | null
+          siswa_id: string
+          status: string | null
+          tahun_ajaran_id: string | null
+          tanggal: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          jenis?: string
+          kd_id: string
+          kelas_id?: string | null
+          keterangan?: string | null
+          nilai_awal?: number | null
+          nilai_remedial?: number | null
+          semester_id?: string | null
+          siswa_id: string
+          status?: string | null
+          tahun_ajaran_id?: string | null
+          tanggal?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          jenis?: string
+          kd_id?: string
+          kelas_id?: string | null
+          keterangan?: string | null
+          nilai_awal?: number | null
+          nilai_remedial?: number | null
+          semester_id?: string | null
+          siswa_id?: string
+          status?: string | null
+          tahun_ajaran_id?: string | null
+          tanggal?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remedial_kd_id_fkey"
+            columns: ["kd_id"]
+            isOneToOne: false
+            referencedRelation: "kompetensi_dasar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remedial_kelas_id_fkey"
+            columns: ["kelas_id"]
+            isOneToOne: false
+            referencedRelation: "kelas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remedial_semester_id_fkey"
+            columns: ["semester_id"]
+            isOneToOne: false
+            referencedRelation: "semester"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remedial_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "siswa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remedial_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["siswa_id"]
+          },
+          {
+            foreignKeyName: "remedial_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "tahun_ajaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remedial_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["tahun_ajaran_id"]
+          },
+        ]
+      }
       riwayat_diklat: {
         Row: {
           id: string
