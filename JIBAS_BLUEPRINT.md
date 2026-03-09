@@ -499,19 +499,23 @@ calon_siswa (id, nama, jenis_kelamin, tempat_lahir, tanggal_lahir,
 | Jurnal Umum | `/keuangan/jurnal` | Input jurnal akuntansi |
 | Buku Besar | `/keuangan/buku-besar` | Laporan buku besar per akun |
 
-#### Sub-Modul yang Perlu Dibangun (Ada di JIBAS 32.0)
+#### Sub-Modul yang Sudah Dibangun (Fase 3 ✅)
+
+| Halaman | Route | Deskripsi |
+|---|---|---|
+| Laporan Bayar per Siswa | `/keuangan/laporan-siswa` | Histori pembayaran 1 siswa |
+| Laporan Bayar per Kelas | `/keuangan/laporan-kelas` | Status bayar per bulan seluruh kelas |
+| Rekap Harian | `/keuangan/rekap-harian` | Ringkasan penerimaan & pengeluaran harian |
+| Pembayaran PSB | `/keuangan/pembayaran-psb` | Pembayaran calon siswa |
+| Tutup Buku | `/keuangan/tutup-buku` | Proses akhir tahun buku |
+| Kuitansi Print | (komponen) | `PrintKuitansi.tsx` — cetak kuitansi dari InputPembayaran |
+
+#### Sub-Modul yang Masih Perlu Dibangun
 
 | Fitur | Referensi Lama | Prioritas |
 |---|---|---|
-| Pembayaran Calon Siswa (PSB) | `pembayaran_iurancalon.php` | Tinggi |
-| Kuitansi Pembayaran (PDF/Print) | `kuitansiiuran.php`, `kuitansijtt.php` | Tinggi |
-| Laporan Bayar per Siswa | `lapbayarsiswa_*.php` | Tinggi |
-| Laporan Bayar per Kelas | `lapbayarsiswa_kelas_*.php` | Tinggi |
-| Laporan Tunggak per Kelas | `lapbayarsiswa_nunggak_*.php` | Tinggi |
 | Laporan Pengeluaran per Jenis | `lappengeluaran_jenis_*.php` | Sedang |
 | Laporan Penerimaan Lain | `lappenerimaanlain_*.php` | Sedang |
-| Rekap Keuangan Harian | `laprekapharian_*.php` | Sedang |
-| Tutup Buku | `tutupbuku.php` | Sedang |
 | Audit Trail | `lapaudit_*.php` | Rendah |
 | Tahun Buku | `tahunbuku_*.php` | Sedang |
 | Online Payment | `/keuangan/onlinepay/` | Rendah |
