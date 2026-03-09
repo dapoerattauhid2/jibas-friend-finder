@@ -15,18 +15,6 @@ import { id as idLocale } from "date-fns/locale";
 
 const now = new Date();
 
-interface AuditRow {
-  id: string;
-  tipe: "penerimaan" | "pengeluaran";
-  tanggal: string;
-  jenis: string;
-  siswa?: string;
-  lembaga: string;
-  jumlah: number;
-  keterangan: string;
-  jurnal_nomor?: string;
-}
-
 export default function AuditTrail() {
   const [departemenId, setDepartemenId] = useState("");
   const [tipeFilter, setTipeFilter] = useState<"semua" | "penerimaan" | "pengeluaran">("semua");
