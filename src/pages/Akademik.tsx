@@ -12,6 +12,9 @@ const subModules = [
   { title: "Jadwal Pelajaran", desc: "Atur jadwal kelas dan guru", icon: Calendar, url: "/akademik/jadwal" },
   { title: "Presensi Siswa", desc: "Input dan rekap kehadiran harian", icon: Clock, url: "/akademik/presensi" },
   { title: "Penilaian & Nilai", desc: "Input nilai dan cetak legger", icon: ClipboardList, url: "/akademik/penilaian" },
+  { title: "Cetak Rapor", desc: "Cetak rapor siswa per semester", icon: BookOpen, url: "/akademik/rapor" },
+  { title: "Legger Nilai", desc: "Rekap nilai seluruh mapel per kelas", icon: ClipboardList, url: "/akademik/legger" },
+  { title: "Kalender Akademik", desc: "Jadwal kegiatan dan kalender sekolah", icon: Calendar, url: "/akademik/kalender" },
   { title: "Referensi Akademik", desc: "Mata pelajaran, kelas, tingkat", icon: Database, url: "/akademik/referensi" },
 ];
 

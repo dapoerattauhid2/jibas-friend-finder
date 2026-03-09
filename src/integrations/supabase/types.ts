@@ -461,6 +461,81 @@ export type Database = {
           },
         ]
       }
+      kalender_akademik: {
+        Row: {
+          created_at: string | null
+          departemen_id: string | null
+          deskripsi: string | null
+          id: string
+          judul: string
+          kategori: string | null
+          tahun_ajaran_id: string | null
+          tanggal_mulai: string
+          tanggal_selesai: string | null
+          warna: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          departemen_id?: string | null
+          deskripsi?: string | null
+          id?: string
+          judul: string
+          kategori?: string | null
+          tahun_ajaran_id?: string | null
+          tanggal_mulai: string
+          tanggal_selesai?: string | null
+          warna?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          departemen_id?: string | null
+          deskripsi?: string | null
+          id?: string
+          judul?: string
+          kategori?: string | null
+          tahun_ajaran_id?: string | null
+          tanggal_mulai?: string
+          tanggal_selesai?: string | null
+          warna?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kalender_akademik_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "departemen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kalender_akademik_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_rekap_keuangan_lembaga"
+            referencedColumns: ["departemen_id"]
+          },
+          {
+            foreignKeyName: "kalender_akademik_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["departemen_id"]
+          },
+          {
+            foreignKeyName: "kalender_akademik_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "tahun_ajaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kalender_akademik_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["tahun_ajaran_id"]
+          },
+        ]
+      }
       kelas: {
         Row: {
           aktif: boolean | null
