@@ -39,6 +39,10 @@ export default function TunggakanPembayaran() {
     return kelasList.filter((k: any) => k.departemen_id === departemenId);
   }, [kelasList, departemenId]);
 
+  // Detect if selected jenis is one-time
+  const selectedJenis = jenisList?.find((j: any) => j.id === jenisId);
+  const isSekaliBayar = selectedJenis?.tipe === "sekali";
+
   const { data: tunggakanData, isLoading } = useQuery({
     queryKey: ["tunggakan", departemenId, kelasId, jenisId, bulanDari, bulanSampai],
     enabled: !!jenisId,
@@ -59,44 +63,79 @@ export default function TunggakanPembayaran() {
       if (!filtered.length) return [];
 
       const siswaIds = filtered.map((s: any) => s.siswa_id);
-      const { data: payments } = await supabase
-        .from("pembayaran")
-        .select("siswa_id, bulan")
-        .eq("jenis_id", jenisId)
-        .in("siswa_id", siswaIds)
-        .gte("bulan", Number(bulanDari))
-        .lte("bulan", Number(bulanSampai));
-
-      const paidMap = new Map<string, Set<number>>();
-      payments?.forEach((p) => {
-        if (!paidMap.has(p.siswa_id!)) paidMap.set(p.siswa_id!, new Set());
-        paidMap.get(p.siswa_id!)!.add(p.bulan!);
-      });
-
       const jenis = jenisList?.find((j: any) => j.id === jenisId);
       const nominal = Number(jenis?.nominal || 0);
+      const tipe = jenis?.tipe || "bulanan";
 
-      const result: any[] = [];
-      filtered.forEach((ks: any) => {
-        const paid = paidMap.get(ks.siswa_id) || new Set();
-        const bulanTunggak: number[] = [];
-        for (let b = Number(bulanDari); b <= Number(bulanSampai); b++) {
-          if (!paid.has(b)) bulanTunggak.push(b);
-        }
-        if (bulanTunggak.length > 0) {
-          result.push({
-            id: ks.siswa_id,
-            nama: ks.siswa?.nama || "-",
-            nis: ks.siswa?.nis || "-",
-            kelas: ks.kelas?.nama || "-",
-            bulan_tunggak: bulanTunggak.map(namaBulan).join(", "),
-            bulan_tunggak_arr: bulanTunggak,
-            jumlah_bulan: bulanTunggak.length,
-            total: bulanTunggak.length * nominal,
-          });
-        }
-      });
-      return result;
+      if (tipe === "sekali") {
+        // One-time payment: check if each student has paid
+        const { data: payments } = await supabase
+          .from("pembayaran")
+          .select("siswa_id, jumlah")
+          .eq("jenis_id", jenisId)
+          .in("siswa_id", siswaIds);
+
+        const paidMap = new Map<string, number>();
+        payments?.forEach((p) => {
+          paidMap.set(p.siswa_id!, (paidMap.get(p.siswa_id!) || 0) + Number(p.jumlah || 0));
+        });
+
+        const result: any[] = [];
+        filtered.forEach((ks: any) => {
+          const paid = paidMap.get(ks.siswa_id) || 0;
+          const sisa = nominal - paid;
+          if (sisa > 0) {
+            result.push({
+              id: ks.siswa_id,
+              nama: ks.siswa?.nama || "-",
+              nis: ks.siswa?.nis || "-",
+              kelas: ks.kelas?.nama || "-",
+              bulan_tunggak: "Sekali Bayar",
+              bulan_tunggak_arr: [0],
+              jumlah_bulan: 1,
+              total: sisa,
+            });
+          }
+        });
+        return result;
+      } else {
+        // Monthly payment logic
+        const { data: payments } = await supabase
+          .from("pembayaran")
+          .select("siswa_id, bulan")
+          .eq("jenis_id", jenisId)
+          .in("siswa_id", siswaIds)
+          .gte("bulan", Number(bulanDari))
+          .lte("bulan", Number(bulanSampai));
+
+        const paidMap = new Map<string, Set<number>>();
+        payments?.forEach((p) => {
+          if (!paidMap.has(p.siswa_id!)) paidMap.set(p.siswa_id!, new Set());
+          paidMap.get(p.siswa_id!)!.add(p.bulan!);
+        });
+
+        const result: any[] = [];
+        filtered.forEach((ks: any) => {
+          const paid = paidMap.get(ks.siswa_id) || new Set();
+          const bulanTunggak: number[] = [];
+          for (let b = Number(bulanDari); b <= Number(bulanSampai); b++) {
+            if (!paid.has(b)) bulanTunggak.push(b);
+          }
+          if (bulanTunggak.length > 0) {
+            result.push({
+              id: ks.siswa_id,
+              nama: ks.siswa?.nama || "-",
+              nis: ks.siswa?.nis || "-",
+              kelas: ks.kelas?.nama || "-",
+              bulan_tunggak: bulanTunggak.map(namaBulan).join(", "),
+              bulan_tunggak_arr: bulanTunggak,
+              jumlah_bulan: bulanTunggak.length,
+              total: bulanTunggak.length * nominal,
+            });
+          }
+        });
+        return result;
+      }
     },
   });
 

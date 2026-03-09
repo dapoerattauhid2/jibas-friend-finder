@@ -69,12 +69,13 @@ function TabJenisPembayaran() {
   const [aktif, setAktif] = useState(true);
   const [formDepartemenId, setFormDepartemenId] = useState("");
   const [akunPendapatanId, setAkunPendapatanId] = useState("");
+  const [tipe, setTipe] = useState("bulanan");
 
-  const openAdd = () => { setEditItem(null); setNama(""); setNominal(""); setKeterangan(""); setAktif(true); setFormDepartemenId(""); setAkunPendapatanId(""); setDialogOpen(true); };
-  const openEdit = (item: any) => { setEditItem(item); setNama(item.nama); setNominal(String(item.nominal || "")); setKeterangan(item.keterangan || ""); setAktif(item.aktif !== false); setFormDepartemenId(item.departemen_id || ""); setAkunPendapatanId(item.akun_pendapatan_id || ""); setDialogOpen(true); };
+  const openAdd = () => { setEditItem(null); setNama(""); setNominal(""); setKeterangan(""); setAktif(true); setFormDepartemenId(""); setAkunPendapatanId(""); setTipe("bulanan"); setDialogOpen(true); };
+  const openEdit = (item: any) => { setEditItem(item); setNama(item.nama); setNominal(String(item.nominal || "")); setKeterangan(item.keterangan || ""); setAktif(item.aktif !== false); setFormDepartemenId(item.departemen_id || ""); setAkunPendapatanId(item.akun_pendapatan_id || ""); setTipe(item.tipe || "bulanan"); setDialogOpen(true); };
 
   const handleSave = async () => {
-    const values = { nama, nominal: nominal ? Number(nominal) : undefined, keterangan: keterangan || undefined, aktif, departemen_id: formDepartemenId || undefined, akun_pendapatan_id: akunPendapatanId || null };
+    const values = { nama, nominal: nominal ? Number(nominal) : undefined, keterangan: keterangan || undefined, aktif, departemen_id: formDepartemenId || undefined, akun_pendapatan_id: akunPendapatanId || null, tipe };
     if (editItem) await updateMut.mutateAsync({ id: editItem.id, ...values });
     else await createMut.mutateAsync(values);
     setDialogOpen(false);
@@ -83,6 +84,7 @@ function TabJenisPembayaran() {
   const columns: DataTableColumn<any>[] = [
     { key: "nama", label: "Nama", sortable: true },
     { key: "nominal", label: "Nominal", render: (v) => v ? formatRupiah(Number(v)) : "-" },
+    { key: "tipe", label: "Tipe", render: (v) => v === "sekali" ? <Badge variant="secondary">Sekali Bayar</Badge> : <Badge variant="outline">Bulanan</Badge> },
     { key: "departemen", label: "Lembaga", render: (_, r) => (r as any).departemen?.kode || "Semua" },
     {
       key: "akun_pendapatan", label: "Akun Pendapatan",
@@ -124,6 +126,17 @@ function TabJenisPembayaran() {
           <div className="space-y-4">
             <div><Label>Nama</Label><Input value={nama} onChange={(e) => setNama(e.target.value)} /></div>
             <div><Label>Nominal (Rp)</Label><Input type="number" value={nominal} onChange={(e) => setNominal(e.target.value)} placeholder="0" /></div>
+            <div>
+              <Label>Tipe Pembayaran</Label>
+              <Select value={tipe} onValueChange={setTipe}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bulanan">Bulanan (12x/tahun)</SelectItem>
+                  <SelectItem value="sekali">Sekali Bayar</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Bulanan = SPP dll. Sekali Bayar = uang pangkal, pendaftaran dll.</p>
+            </div>
             <div>
               <Label>Lembaga (kosongkan jika berlaku untuk semua)</Label>
               <Select value={formDepartemenId || "__all__"} onValueChange={(v) => setFormDepartemenId(v === "__all__" ? "" : v)}>

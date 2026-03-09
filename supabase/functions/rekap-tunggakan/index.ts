@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     // Get all jenis_pembayaran that are active
     const { data: jenisList } = await supabase
       .from("jenis_pembayaran")
-      .select("id, nama, nominal")
+      .select("id, nama, nominal, tipe")
       .eq("aktif", true);
 
     if (!jenisList) {
@@ -42,28 +42,51 @@ Deno.serve(async (req) => {
 
     const { data: payments } = await query;
 
-    // Calculate outstanding per jenis for months 1-12
-    const tunggakan: Array<{ jenis: string; bulan: number; nominal: number; terbayar: number; sisa: number }> = [];
+    // Calculate outstanding per jenis
+    const tunggakan: Array<{ jenis: string; bulan: number; nominal: number; terbayar: number; sisa: number; tipe: string }> = [];
     let total = 0;
 
     for (const jenis of jenisList) {
-      for (let bulan = 1; bulan <= 12; bulan++) {
+      const nominal = Number(jenis.nominal) || 0;
+      const tipe = jenis.tipe || "bulanan";
+
+      if (tipe === "sekali") {
+        // One-time payment: check if paid at all (bulan=0 or any bulan)
         const paid = (payments || [])
-          .filter((p) => p.jenis_id === jenis.id && p.bulan === bulan)
+          .filter((p) => p.jenis_id === jenis.id)
           .reduce((sum, p) => sum + (Number(p.jumlah) || 0), 0);
 
-        const nominal = Number(jenis.nominal) || 0;
         const sisa = nominal - paid;
-
         if (sisa > 0) {
           tunggakan.push({
             jenis: jenis.nama,
-            bulan,
+            bulan: 0,
             nominal,
             terbayar: paid,
             sisa,
+            tipe: "sekali",
           });
           total += sisa;
+        }
+      } else {
+        // Monthly payment: check months 1-12
+        for (let bulan = 1; bulan <= 12; bulan++) {
+          const paid = (payments || [])
+            .filter((p) => p.jenis_id === jenis.id && p.bulan === bulan)
+            .reduce((sum, p) => sum + (Number(p.jumlah) || 0), 0);
+
+          const sisa = nominal - paid;
+          if (sisa > 0) {
+            tunggakan.push({
+              jenis: jenis.nama,
+              bulan,
+              nominal,
+              terbayar: paid,
+              sisa,
+              tipe: "bulanan",
+            });
+            total += sisa;
+          }
         }
       }
     }
