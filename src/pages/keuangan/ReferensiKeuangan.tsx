@@ -590,3 +590,89 @@ function TabTahunBuku() {
     </>
   );
 }
+
+// ─── Tab Template Nomor Kuitansi / Jurnal ───
+function TabTemplateNomor() {
+  const qc = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const [values, setValues] = useState<Record<string, string>>({});
+
+  const { data: templates, isLoading } = useQuery({
+    queryKey: ["pengaturan_template"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pengaturan_template")
+        .select("*")
+        .order("kode_template");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  useEffect(() => {
+    if (templates) {
+      const map: Record<string, string> = {};
+      templates.forEach((t: any) => { map[t.kode_template] = t.template; });
+      setValues(map);
+    }
+  }, [templates]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      for (const t of templates || []) {
+        const newVal = values[t.kode_template];
+        if (newVal !== undefined && newVal !== t.template) {
+          const { error } = await supabase
+            .from("pengaturan_template")
+            .update({ template: newVal })
+            .eq("id", t.id);
+          if (error) throw error;
+        }
+      }
+      qc.invalidateQueries({ queryKey: ["pengaturan_template"] });
+      toast.success("Template berhasil disimpan");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return <Card className="mt-4"><CardContent className="pt-6"><div className="animate-pulse space-y-4">{[1,2,3].map(i => <div key={i} className="h-16 bg-muted rounded" />)}</div></CardContent></Card>;
+  }
+
+  return (
+    <Card className="mt-4">
+      <CardContent className="pt-6 space-y-6">
+        <Alert>
+          <FileText className="h-4 w-4" />
+          <AlertDescription>
+            Variabel yang tersedia: <code className="text-primary font-mono text-xs">{"{TAHUN}"}</code> <code className="text-primary font-mono text-xs">{"{BULAN}"}</code> <code className="text-primary font-mono text-xs">{"{NOMOR}"}</code> <code className="text-primary font-mono text-xs">{"{LEMBAGA}"}</code>
+            <br />
+            Contoh: <code className="font-mono text-xs">KWT-{"{TAHUN}"}-{"{BULAN}"}-{"{NOMOR}"}</code> → <span className="font-medium">KWT-2026-03-001</span>
+          </AlertDescription>
+        </Alert>
+
+        {(templates || []).map((t: any) => (
+          <div key={t.kode_template} className="space-y-2 p-4 border rounded-lg">
+            <Label className="text-base font-semibold">{t.label}</Label>
+            {t.keterangan && <p className="text-sm text-muted-foreground">{t.keterangan}</p>}
+            <Input
+              value={values[t.kode_template] || ""}
+              onChange={(e) => setValues(prev => ({ ...prev, [t.kode_template]: e.target.value }))}
+              placeholder={t.template}
+              className="font-mono"
+            />
+          </div>
+        ))}
+
+        <Button onClick={handleSave} disabled={saving}>
+          <Save className="h-4 w-4 mr-2" />
+          {saving ? "Menyimpan..." : "Simpan Template"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
