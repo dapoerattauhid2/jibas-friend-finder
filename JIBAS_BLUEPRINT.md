@@ -909,15 +909,15 @@ Gunakan urutan ini saat membangun fitur baru, khususnya bila menggunakan **Lovab
 - [ ] **Legger Nilai** — rekap nilai seluruh kelas dalam tabel
 - [ ] **Kalender Akademik** — event, libur, jadwal ujian
 
-### Fase 3 — Keuangan Lengkap
+### Fase 3 — Keuangan Lengkap (SUDAH SELESAI ✅)
 
-- [ ] **Kuitansi Pembayaran** — cetak kuitansi PDF/print per transaksi
-- [ ] **Laporan Bayar per Siswa** — histori lengkap pembayaran 1 siswa
-- [ ] **Laporan Bayar per Kelas** — rekapitulasi pembayaran seluruh kelas
-- [ ] **Laporan Tunggak per Kelas** — daftar siswa nunggak per kelas & jenis
-- [ ] **Rekap Keuangan Harian** — ringkasan penerimaan & pengeluaran per hari
-- [ ] **Pembayaran Calon Siswa** — bayar biaya pendaftaran PSB
-- [ ] **Tutup Buku** — proses akhir tahun buku
+- [x] **Kuitansi Pembayaran** — cetak kuitansi PDF/print per transaksi (`PrintKuitansi.tsx`)
+- [x] **Laporan Bayar per Siswa** — histori lengkap pembayaran 1 siswa (`LaporanBayarSiswa.tsx`)
+- [x] **Laporan Bayar per Kelas** — rekapitulasi pembayaran seluruh kelas (`LaporanBayarKelas.tsx`)
+- [x] **Laporan Tunggak per Kelas** — daftar siswa nunggak per kelas & jenis (via `TunggakanPembayaran.tsx`)
+- [x] **Rekap Keuangan Harian** — ringkasan penerimaan & pengeluaran per hari (`RekapHarian.tsx`)
+- [x] **Pembayaran Calon Siswa** — bayar biaya pendaftaran PSB (`PembayaranPSB.tsx`)
+- [x] **Tutup Buku** — proses akhir tahun buku (`TutupBuku.tsx`)
 
 ### Fase 4 — Kepegawaian Lengkap
 
