@@ -27,16 +27,7 @@ export default function PortalPresensi() {
     queryFn: async () => {
       const { data } = await supabase
         .from("ortu_siswa")
-        .select(`
-          siswa_id,
-          siswa:siswa_id (
-            id, nama, nis,
-            kelas_siswa (
-              aktif,
-              kelas:kelas_id (nama, departemen:departemen_id (nama))
-            )
-          )
-        `)
+        .select("siswa_id, siswa:siswa_id (id, nama, nis)")
         .eq("user_id", user!.id);
       return data || [];
     },
