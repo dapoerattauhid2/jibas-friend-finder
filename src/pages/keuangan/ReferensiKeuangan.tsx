@@ -38,12 +38,14 @@ export default function ReferensiKeuangan() {
           <TabsTrigger value="akun">Akun Rekening</TabsTrigger>
           <TabsTrigger value="pengaturan-akun">Pengaturan Akun</TabsTrigger>
           <TabsTrigger value="tahun-buku">Tahun Buku</TabsTrigger>
+          <TabsTrigger value="template">Template Nomor</TabsTrigger>
         </TabsList>
         <TabsContent value="penerimaan"><TabJenisPembayaran /></TabsContent>
         <TabsContent value="pengeluaran"><TabJenisPengeluaran /></TabsContent>
         <TabsContent value="akun"><TabAkunRekening /></TabsContent>
         <TabsContent value="pengaturan-akun"><TabPengaturanAkun /></TabsContent>
         <TabsContent value="tahun-buku"><TabTahunBuku /></TabsContent>
+        <TabsContent value="template"><TabTemplateNomor /></TabsContent>
       </Tabs>
     </div>
   );
