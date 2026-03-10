@@ -1,1 +1,4 @@
 project_id = "jywjiivyvohojveoecat"
+
+[functions.get-midtrans-config]
+verify_jwt = false
