@@ -59,6 +59,10 @@ export default function InputPembayaran() {
   const selectedJenis = jenisList?.find((j: any) => j.id === jenisId);
   const isSekali = selectedJenis?.tipe === "sekali";
 
+  // Get kelas_id of the selected student for tarif lookup
+  const siswaKelasId = selectedSiswa?.kelas_siswa?.[0]?.kelas?.id;
+  const { data: tarifNominal } = useTarifSiswa(jenisId || undefined, selectedSiswa?.id, siswaKelasId);
+
   // Auto-detect tunggakan: cek bulan yang sudah dibayar (untuk tipe bulanan)
   const { data: bulanDibayar } = useQuery({
     queryKey: ["cek_tunggakan", selectedSiswa?.id, jenisId],
