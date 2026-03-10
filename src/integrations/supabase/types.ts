@@ -2780,6 +2780,95 @@ export type Database = {
         }
         Relationships: []
       }
+      tarif_tagihan: {
+        Row: {
+          aktif: boolean | null
+          created_at: string | null
+          id: string
+          jenis_id: string
+          kelas_id: string | null
+          keterangan: string | null
+          nominal: number
+          siswa_id: string | null
+          tahun_ajaran_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aktif?: boolean | null
+          created_at?: string | null
+          id?: string
+          jenis_id: string
+          kelas_id?: string | null
+          keterangan?: string | null
+          nominal?: number
+          siswa_id?: string | null
+          tahun_ajaran_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aktif?: boolean | null
+          created_at?: string | null
+          id?: string
+          jenis_id?: string
+          kelas_id?: string | null
+          keterangan?: string | null
+          nominal?: number
+          siswa_id?: string | null
+          tahun_ajaran_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarif_tagihan_jenis_id_fkey"
+            columns: ["jenis_id"]
+            isOneToOne: false
+            referencedRelation: "jenis_pembayaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarif_tagihan_jenis_id_fkey"
+            columns: ["jenis_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["jenis_id"]
+          },
+          {
+            foreignKeyName: "tarif_tagihan_kelas_id_fkey"
+            columns: ["kelas_id"]
+            isOneToOne: false
+            referencedRelation: "kelas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarif_tagihan_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "siswa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarif_tagihan_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["siswa_id"]
+          },
+          {
+            foreignKeyName: "tarif_tagihan_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "tahun_ajaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarif_tagihan_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["tahun_ajaran_id"]
+          },
+        ]
+      }
       tingkat: {
         Row: {
           aktif: boolean | null
@@ -3191,6 +3280,15 @@ export type Database = {
       }
       get_my_pegawai_id: { Args: { _user_id: string }; Returns: string }
       get_my_siswa_id: { Args: { _user_id: string }; Returns: string }
+      get_tarif_siswa: {
+        Args: {
+          p_jenis_id: string
+          p_kelas_id?: string
+          p_siswa_id: string
+          p_tahun_ajaran_id?: string
+        }
+        Returns: number
+      }
       get_user_role: { Args: { _user_id: string }; Returns: string }
       guru_teaches_class: {
         Args: { _kelas_id: string; _user_id: string }
