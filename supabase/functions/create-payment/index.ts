@@ -168,13 +168,11 @@ Deno.serve(async (req) => {
         email: customer.email,
         phone: customer.telepon || "",
       },
-      item_details: items.map((item) => ({
-        id: `${item.jenis_id}-${item.siswa_id}-${item.bulan}`,
+      item_details: items.map((item, idx) => ({
+        id: `ITEM-${idx + 1}-${item.bulan}`,
         price: Math.round(item.jumlah),
         quantity: 1,
         name: `${item.jenis_nama} ${NAMA_BULAN[item.bulan]} - ${item.nama_siswa}`.substring(0, 50),
-        category: "Pembayaran Sekolah",
-        merchant_name: "JIBAS School",
       })),
       callbacks: {
         finish: `${req.headers.get("origin") || "http://localhost:5173"}/portal/pembayaran?order=${orderId}`,
