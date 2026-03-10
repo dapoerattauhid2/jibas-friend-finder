@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 import { useLembaga, useJenisPembayaran, formatRupiah, namaBulan } from "@/hooks/useKeuangan";
+import { getTarifBatch } from "@/hooks/useTarifTagihan";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, XCircle } from "lucide-react";
@@ -26,7 +27,6 @@ export default function LaporanBayarKelas() {
     },
   });
 
-  // Detect if selected jenis is sekali bayar
   const selectedJenis = jenisList?.find((j: any) => j.id === jenisId);
   const isSekali = (selectedJenis as any)?.tipe === "sekali";
 
@@ -44,6 +44,9 @@ export default function LaporanBayarKelas() {
 
       const siswaIds = kelasSiswa.map((ks: any) => ks.siswa?.id).filter(Boolean);
 
+      // Get per-student tarif
+      const tarifMap = await getTarifBatch(jenisId, siswaIds, kelasId);
+
       const { data: payments } = await supabase
         .from("pembayaran")
         .select("siswa_id, bulan, jumlah")
@@ -57,13 +60,14 @@ export default function LaporanBayarKelas() {
         const siswa = ks.siswa;
         const siswaPayments = (payments || []).filter((p: any) => p.siswa_id === siswa.id);
         const totalBayar = siswaPayments.reduce((s: number, p: any) => s + Number(p.jumlah || 0), 0);
+        const nominal = tarifMap.get(siswa.id) || Number(jenis?.nominal || 0);
 
         if (tipe === "sekali") {
-          const nominal = Number(jenis?.nominal || 0);
           return {
             id: siswa.id,
             nama: siswa.nama,
             nis: siswa.nis || "-",
+            nominal,
             totalBayar,
             lunas: totalBayar >= nominal,
             sisa: Math.max(nominal - totalBayar, 0),
@@ -76,6 +80,7 @@ export default function LaporanBayarKelas() {
             id: siswa.id,
             nama: siswa.nama,
             nis: siswa.nis || "-",
+            nominal,
             ...Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`b${i + 1}`, bulanBayar[i + 1] || 0])),
             totalBayar,
             bulanLunas,
@@ -88,6 +93,7 @@ export default function LaporanBayarKelas() {
   const columnsBulanan: DataTableColumn<any>[] = [
     { key: "nama", label: "Nama Siswa" },
     { key: "nis", label: "NIS" },
+    { key: "nominal", label: "Tarif", render: (v: any) => formatRupiah(Number(v)) },
     ...Array.from({ length: 12 }, (_, i) => ({
       key: `b${i + 1}`,
       label: namaBulan(i + 1).slice(0, 3),
@@ -102,6 +108,7 @@ export default function LaporanBayarKelas() {
   const columnsSekali: DataTableColumn<any>[] = [
     { key: "nama", label: "Nama Siswa" },
     { key: "nis", label: "NIS" },
+    { key: "nominal", label: "Tarif", render: (v: any) => formatRupiah(Number(v)) },
     { key: "lunas", label: "Status", render: (v: any) => v
       ? <span className="inline-flex items-center gap-1 text-emerald-600"><CheckCircle2 className="h-4 w-4" /> Lunas</span>
       : <span className="inline-flex items-center gap-1 text-destructive"><XCircle className="h-4 w-4" /> Belum</span>

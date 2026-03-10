@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { PrintKuitansi } from "@/components/shared/PrintKuitansi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 import { supabase } from "@/integrations/supabase/client";
 import { useJenisPembayaran, usePembayaranBySiswa, useCreatePembayaran, useLembaga, formatRupiah, terbilang, namaBulan } from "@/hooks/useKeuangan";
+import { useTarifSiswa } from "@/hooks/useTarifTagihan";
 import { usePengaturanAkun } from "@/hooks/useJurnal";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -47,7 +48,7 @@ export default function InputPembayaran() {
     queryFn: async () => {
       const { data } = await supabase
         .from("siswa")
-        .select("id, nis, nama, foto_url, status, kelas_siswa(kelas(nama))")
+        .select("id, nis, nama, foto_url, status, kelas_siswa(kelas_id, kelas(id, nama))")
         .or(`nama.ilike.%${searchTerm}%,nis.ilike.%${searchTerm}%`)
         .eq("status", "aktif")
         .limit(10);
@@ -57,6 +58,10 @@ export default function InputPembayaran() {
 
   const selectedJenis = jenisList?.find((j: any) => j.id === jenisId);
   const isSekali = selectedJenis?.tipe === "sekali";
+
+  // Get kelas_id of the selected student for tarif lookup
+  const siswaKelasId = selectedSiswa?.kelas_siswa?.[0]?.kelas?.id;
+  const { data: tarifNominal } = useTarifSiswa(jenisId || undefined, selectedSiswa?.id, siswaKelasId);
 
   // Auto-detect tunggakan: cek bulan yang sudah dibayar (untuk tipe bulanan)
   const { data: bulanDibayar } = useQuery({
@@ -84,13 +89,21 @@ export default function InputPembayaran() {
         .eq("siswa_id", selectedSiswa.id)
         .eq("jenis_id", jenisId);
       if (error) throw error;
+      const effectiveNominal = tarifNominal || Number(selectedJenis?.nominal) || 0;
       const totalBayar = (data || []).reduce((sum, r) => sum + (Number(r.jumlah) || 0), 0);
-      return { totalBayar, lunas: totalBayar >= (Number(selectedJenis?.nominal) || 0) };
+      return { totalBayar, lunas: totalBayar >= effectiveNominal };
     },
   });
 
   const sudahBayar = bulanDibayar ? Array.from({ length: 12 }, (_, i) => bulanDibayar.has(i + 1)).filter(Boolean).length : 0;
   const belumBayar = bulanDibayar ? 12 - sudahBayar : 0;
+
+  // Auto-set jumlah when tarif loads
+  useEffect(() => {
+    if (tarifNominal != null && jenisId) {
+      setJumlah(String(tarifNominal));
+    }
+  }, [tarifNominal, jenisId]);
 
   const handleSelectSiswa = (s: any) => {
     setSelectedSiswa(s);
@@ -286,6 +299,7 @@ export default function InputPembayaran() {
                   <Label>Jenis Pembayaran</Label>
                   <Select value={jenisId} onValueChange={(v) => {
                     setJenisId(v);
+                    // Will set jumlah once tarifNominal loads via effect below
                     const j = jenisList?.find((x: any) => x.id === v);
                     if (j?.nominal) setJumlah(String(j.nominal));
                   }}>
@@ -296,6 +310,9 @@ export default function InputPembayaran() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {tarifNominal != null && tarifNominal !== Number(selectedJenis?.nominal || 0) && (
+                    <p className="text-xs text-primary mt-1">⚡ Tarif khusus siswa ini: {formatRupiah(tarifNominal)}</p>
+                  )}
                 </div>
 
                 {/* Grid 12 bulan - hanya untuk tipe bulanan */}
@@ -347,12 +364,12 @@ export default function InputPembayaran() {
                       </div>
                     ) : (
                       <div className="text-sm space-y-1">
-                        <p>Nominal: <span className="font-medium">{formatRupiah(Number(selectedJenis?.nominal) || 0)}</span></p>
+                        <p>Nominal: <span className="font-medium">{formatRupiah(tarifNominal || Number(selectedJenis?.nominal) || 0)}</span></p>
                         {pembayaranSekali.totalBayar > 0 && (
                           <p>Sudah dibayar: <span className="font-medium">{formatRupiah(pembayaranSekali.totalBayar)}</span></p>
                         )}
                         <p className="text-destructive font-medium">
-                          Sisa: {formatRupiah((Number(selectedJenis?.nominal) || 0) - pembayaranSekali.totalBayar)}
+                          Sisa: {formatRupiah((tarifNominal || Number(selectedJenis?.nominal) || 0) - pembayaranSekali.totalBayar)}
                         </p>
                       </div>
                     )}

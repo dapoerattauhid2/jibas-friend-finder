@@ -9,6 +9,7 @@ import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useJenisPembayaran, useLembaga, formatRupiah, namaBulan } from "@/hooks/useKeuangan";
+import { getTarifBatch } from "@/hooks/useTarifTagihan";
 import { useKelas } from "@/hooks/useAkademikData";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -32,14 +33,12 @@ export default function TunggakanPembayaran() {
   const { data: jenisList } = useJenisPembayaran(departemenId || undefined);
   const { data: kelasList } = useKelas();
 
-  // Filter kelas by departemen
   const filteredKelas = useMemo(() => {
     if (!kelasList) return [];
     if (!departemenId) return kelasList;
     return kelasList.filter((k: any) => k.departemen_id === departemenId);
   }, [kelasList, departemenId]);
 
-  // Detect if selected jenis is one-time
   const selectedJenis = jenisList?.find((j: any) => j.id === jenisId);
   const isSekaliBayar = (selectedJenis as any)?.tipe === "sekali";
 
@@ -49,13 +48,12 @@ export default function TunggakanPembayaran() {
     queryFn: async () => {
       let siswaQuery = supabase
         .from("kelas_siswa")
-        .select("siswa_id, siswa:siswa_id(id, nis, nama), kelas:kelas_id(nama, departemen_id)")
+        .select("siswa_id, kelas_id, siswa:siswa_id(id, nis, nama), kelas:kelas_id(nama, departemen_id)")
         .eq("aktif", true);
       if (kelasId) siswaQuery = siswaQuery.eq("kelas_id", kelasId);
       const { data: siswaList } = await siswaQuery;
       if (!siswaList?.length) return [];
 
-      // Filter by departemen on client side via kelas.departemen_id
       const filtered = departemenId
         ? siswaList.filter((s: any) => s.kelas?.departemen_id === departemenId)
         : siswaList;
@@ -63,12 +61,12 @@ export default function TunggakanPembayaran() {
       if (!filtered.length) return [];
 
       const siswaIds = filtered.map((s: any) => s.siswa_id);
-      const jenis = jenisList?.find((j: any) => j.id === jenisId);
-      const nominal = Number(jenis?.nominal || 0);
-      const tipe = (jenis as any)?.tipe || "bulanan";
+
+      // Get per-student tarif
+      const tarifMap = await getTarifBatch(jenisId, siswaIds, kelasId || undefined);
+      const tipe = (selectedJenis as any)?.tipe || "bulanan";
 
       if (tipe === "sekali") {
-        // One-time payment: check if each student has paid
         const { data: payments } = await supabase
           .from("pembayaran")
           .select("siswa_id, jumlah")
@@ -82,6 +80,7 @@ export default function TunggakanPembayaran() {
 
         const result: any[] = [];
         filtered.forEach((ks: any) => {
+          const nominal = tarifMap.get(ks.siswa_id) || 0;
           const paid = paidMap.get(ks.siswa_id) || 0;
           const sisa = nominal - paid;
           if (sisa > 0) {
@@ -90,6 +89,7 @@ export default function TunggakanPembayaran() {
               nama: ks.siswa?.nama || "-",
               nis: ks.siswa?.nis || "-",
               kelas: ks.kelas?.nama || "-",
+              nominal,
               bulan_tunggak: "Sekali Bayar",
               bulan_tunggak_arr: [0],
               jumlah_bulan: 1,
@@ -99,7 +99,6 @@ export default function TunggakanPembayaran() {
         });
         return result;
       } else {
-        // Monthly payment logic
         const { data: payments } = await supabase
           .from("pembayaran")
           .select("siswa_id, bulan")
@@ -116,6 +115,7 @@ export default function TunggakanPembayaran() {
 
         const result: any[] = [];
         filtered.forEach((ks: any) => {
+          const nominal = tarifMap.get(ks.siswa_id) || 0;
           const paid = paidMap.get(ks.siswa_id) || new Set();
           const bulanTunggak: number[] = [];
           for (let b = Number(bulanDari); b <= Number(bulanSampai); b++) {
@@ -127,6 +127,7 @@ export default function TunggakanPembayaran() {
               nama: ks.siswa?.nama || "-",
               nis: ks.siswa?.nis || "-",
               kelas: ks.kelas?.nama || "-",
+              nominal,
               bulan_tunggak: bulanTunggak.map(namaBulan).join(", "),
               bulan_tunggak_arr: bulanTunggak,
               jumlah_bulan: bulanTunggak.length,
@@ -166,8 +167,6 @@ export default function TunggakanPembayaran() {
     if (!selectedRows.length || !jenisId) return;
     setIsBulkPaying(true);
     try {
-      const jenis = jenisList?.find((j: any) => j.id === jenisId);
-      const nominal = Number(jenis?.nominal || 0);
       const today = new Date().toISOString().split("T")[0];
 
       const rows: any[] = [];
@@ -177,7 +176,7 @@ export default function TunggakanPembayaran() {
             siswa_id: sr.id,
             jenis_id: jenisId,
             bulan: b,
-            jumlah: nominal,
+            jumlah: sr.nominal, // Use per-student tarif
             tanggal_bayar: today,
             departemen_id: departemenId || undefined,
           });
@@ -216,6 +215,7 @@ export default function TunggakanPembayaran() {
     { key: "nis", label: "NIS", sortable: true },
     { key: "nama", label: "Nama Siswa", sortable: true },
     { key: "kelas", label: "Kelas" },
+    { key: "nominal", label: "Tarif", render: (v: unknown) => formatRupiah(Number(v)) },
     { key: "bulan_tunggak", label: isSekaliBayar ? "Tipe" : "Bulan Tunggak" },
     ...(!isSekaliBayar ? [{ key: "jumlah_bulan", label: "Jml Bulan" }] : []),
     { key: "total", label: "Total Tunggakan", render: (v: unknown) => formatRupiah(Number(v)) },
@@ -228,7 +228,6 @@ export default function TunggakanPembayaran() {
         <p className="text-sm text-muted-foreground">Laporan siswa yang belum membayar</p>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="pt-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -298,13 +297,11 @@ export default function TunggakanPembayaran() {
         </CardContent>
       </Card>
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2">
         <StatsCard title="Total Siswa Menunggak" value={totalSiswa} icon={Users} color="warning" />
         <StatsCard title="Total Nominal Tunggakan" value={formatRupiah(totalNominal)} icon={AlertTriangle} color="destructive" />
       </div>
 
-      {/* Table */}
       <Card>
         <CardContent className="pt-6">
           {!jenisId ? (
@@ -334,7 +331,6 @@ export default function TunggakanPembayaran() {
         </CardContent>
       </Card>
 
-      {/* Floating action bar */}
       {selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card border shadow-xl rounded-xl px-6 py-3 flex items-center gap-4 animate-fade-in">
           <span className="text-sm font-medium">
@@ -350,7 +346,6 @@ export default function TunggakanPembayaran() {
         </div>
       )}
 
-      {/* Confirm bulk pay */}
       <ConfirmDialog
         open={showConfirm}
         onOpenChange={setShowConfirm}

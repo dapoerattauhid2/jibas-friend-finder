@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ShoppingCart } from "lucide-react";
+import { getTarifBatch } from "@/hooks/useTarifTagihan";
 
 const NAMA_BULAN = [
   "",
@@ -79,7 +80,22 @@ export default function PortalTagihan() {
         .eq("sudah_bayar", false)
         .order("nama_siswa")
         .order("bulan");
-      return (data || []) as TagihanItem[];
+      
+      const items = (data || []) as TagihanItem[];
+      
+      // Get unique jenis_ids and apply per-student tarif
+      const jenisIds = [...new Set(items.map(t => t.jenis_id))];
+      for (const jId of jenisIds) {
+        const relevantItems = items.filter(t => t.jenis_id === jId);
+        const siswaIds = [...new Set(relevantItems.map(t => t.siswa_id))];
+        const tarifMap = await getTarifBatch(jId, siswaIds);
+        relevantItems.forEach(t => {
+          const tarif = tarifMap.get(t.siswa_id);
+          if (tarif != null) t.nominal = tarif;
+        });
+      }
+      
+      return items;
     },
     enabled: anakIds.length > 0,
   });
