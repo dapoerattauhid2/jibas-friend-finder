@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
     if (txError) throw txError;
 
     // 8. Simpan detail item
-    const itemsToInsert = items.map((item) => ({
+    const itemsToInsert = validatedItems.map((item) => ({
       transaksi_id: transaksi.id,
       siswa_id: item.siswa_id,
       jenis_id: item.jenis_id,
