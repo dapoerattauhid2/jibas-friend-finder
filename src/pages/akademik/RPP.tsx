@@ -68,24 +68,29 @@ export default function RPP() {
     { key: "id", label: "Aksi", render: (_, row) => <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setViewRpp(row); }}><Eye className="h-4 w-4" /></Button> },
   ];
 
+  const esc = (s: string | null | undefined) => {
+    if (!s) return "-";
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  };
+
   const printRpp = (rpp: any) => {
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(`<!DOCTYPE html><html><head><title>RPP - ${rpp.judul}</title><style>body{font-family:serif;margin:30px 50px;font-size:12pt}h1{font-size:16pt;text-align:center}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #000;padding:8px;text-align:left;vertical-align:top}th{width:200px;background:#f0f0f0}@media print{body{margin:0}}</style></head><body>
+    win.document.write(`<!DOCTYPE html><html><head><title>RPP - ${esc(rpp.judul)}</title><style>body{font-family:serif;margin:30px 50px;font-size:12pt}h1{font-size:16pt;text-align:center}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #000;padding:8px;text-align:left;vertical-align:top}th{width:200px;background:#f0f0f0}@media print{body{margin:0}}</style></head><body>
       <h1>RENCANA PELAKSANAAN PEMBELAJARAN</h1>
       <table>
-        <tr><th>Mata Pelajaran</th><td>${rpp.mapel_nama}</td></tr>
-        <tr><th>Kelas</th><td>${rpp.kelas_nama}</td></tr>
-        <tr><th>Pertemuan ke-</th><td>${rpp.pertemuan_ke}</td></tr>
-        <tr><th>Alokasi Waktu</th><td>${rpp.alokasi_waktu || "-"}</td></tr>
-        <tr><th>Kompetensi Inti</th><td>${rpp.kompetensi_inti || "-"}</td></tr>
-        <tr><th>Kompetensi Dasar</th><td>${rpp.kompetensi_dasar || "-"}</td></tr>
-        <tr><th>Tujuan Pembelajaran</th><td>${rpp.tujuan || "-"}</td></tr>
-        <tr><th>Materi</th><td>${rpp.materi || "-"}</td></tr>
-        <tr><th>Metode</th><td>${rpp.metode || "-"}</td></tr>
-        <tr><th>Langkah Kegiatan</th><td>${rpp.langkah_kegiatan || "-"}</td></tr>
-        <tr><th>Penilaian</th><td>${rpp.penilaian || "-"}</td></tr>
-        <tr><th>Sumber Belajar</th><td>${rpp.sumber_belajar || "-"}</td></tr>
+        <tr><th>Mata Pelajaran</th><td>${esc(rpp.mapel_nama)}</td></tr>
+        <tr><th>Kelas</th><td>${esc(rpp.kelas_nama)}</td></tr>
+        <tr><th>Pertemuan ke-</th><td>${esc(String(rpp.pertemuan_ke))}</td></tr>
+        <tr><th>Alokasi Waktu</th><td>${esc(rpp.alokasi_waktu)}</td></tr>
+        <tr><th>Kompetensi Inti</th><td>${esc(rpp.kompetensi_inti)}</td></tr>
+        <tr><th>Kompetensi Dasar</th><td>${esc(rpp.kompetensi_dasar)}</td></tr>
+        <tr><th>Tujuan Pembelajaran</th><td>${esc(rpp.tujuan)}</td></tr>
+        <tr><th>Materi</th><td>${esc(rpp.materi)}</td></tr>
+        <tr><th>Metode</th><td>${esc(rpp.metode)}</td></tr>
+        <tr><th>Langkah Kegiatan</th><td>${esc(rpp.langkah_kegiatan)}</td></tr>
+        <tr><th>Penilaian</th><td>${esc(rpp.penilaian)}</td></tr>
+        <tr><th>Sumber Belajar</th><td>${esc(rpp.sumber_belajar)}</td></tr>
       </table></body></html>`);
     win.document.close();
     setTimeout(() => { win.print(); win.close(); }, 500);
