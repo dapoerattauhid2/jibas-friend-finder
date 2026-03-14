@@ -141,25 +141,49 @@ export type Database = {
       }
       departemen: {
         Row: {
+          akreditasi: string | null
           aktif: boolean | null
+          alamat: string | null
+          email: string | null
           id: string
+          kepala_sekolah: string | null
           keterangan: string | null
           kode: string | null
+          kota: string | null
+          logo_url: string | null
           nama: string
+          npsn: string | null
+          telepon: string | null
         }
         Insert: {
+          akreditasi?: string | null
           aktif?: boolean | null
+          alamat?: string | null
+          email?: string | null
           id?: string
+          kepala_sekolah?: string | null
           keterangan?: string | null
           kode?: string | null
+          kota?: string | null
+          logo_url?: string | null
           nama: string
+          npsn?: string | null
+          telepon?: string | null
         }
         Update: {
+          akreditasi?: string | null
           aktif?: boolean | null
+          alamat?: string | null
+          email?: string | null
           id?: string
+          kepala_sekolah?: string | null
           keterangan?: string | null
           kode?: string | null
+          kota?: string | null
+          logo_url?: string | null
           nama?: string
+          npsn?: string | null
+          telepon?: string | null
         }
         Relationships: []
       }
