@@ -2824,6 +2824,122 @@ export type Database = {
           },
         ]
       }
+      tagihan: {
+        Row: {
+          bulan: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          jenis_id: string
+          jurnal_piutang_id: string | null
+          kelas_id: string | null
+          nominal: number
+          pembayaran_id: string | null
+          siswa_id: string
+          status: string
+          tahun_ajaran_id: string
+        }
+        Insert: {
+          bulan?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          jenis_id: string
+          jurnal_piutang_id?: string | null
+          kelas_id?: string | null
+          nominal?: number
+          pembayaran_id?: string | null
+          siswa_id: string
+          status?: string
+          tahun_ajaran_id: string
+        }
+        Update: {
+          bulan?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          jenis_id?: string
+          jurnal_piutang_id?: string | null
+          kelas_id?: string | null
+          nominal?: number
+          pembayaran_id?: string | null
+          siswa_id?: string
+          status?: string
+          tahun_ajaran_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tagihan_jenis_id_fkey"
+            columns: ["jenis_id"]
+            isOneToOne: false
+            referencedRelation: "jenis_pembayaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tagihan_jenis_id_fkey"
+            columns: ["jenis_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["jenis_id"]
+          },
+          {
+            foreignKeyName: "tagihan_jurnal_piutang_id_fkey"
+            columns: ["jurnal_piutang_id"]
+            isOneToOne: false
+            referencedRelation: "jurnal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tagihan_kelas_id_fkey"
+            columns: ["kelas_id"]
+            isOneToOne: false
+            referencedRelation: "kelas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tagihan_pembayaran_id_fkey"
+            columns: ["pembayaran_id"]
+            isOneToOne: false
+            referencedRelation: "pembayaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tagihan_pembayaran_id_fkey"
+            columns: ["pembayaran_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["pembayaran_id"]
+          },
+          {
+            foreignKeyName: "tagihan_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "siswa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tagihan_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["siswa_id"]
+          },
+          {
+            foreignKeyName: "tagihan_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "tahun_ajaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tagihan_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["tahun_ajaran_id"]
+          },
+        ]
+      }
       tahun_ajaran: {
         Row: {
           aktif: boolean | null

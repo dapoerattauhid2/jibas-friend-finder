@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useJenisPembayaran, usePembayaranBySiswa, useCreatePembayaran, useLembaga, formatRupiah, terbilang, namaBulan } from "@/hooks/useKeuangan";
 import { useTarifSiswa } from "@/hooks/useTarifTagihan";
 import { usePengaturanAkun } from "@/hooks/useJurnal";
+import { useTagihanBySiswa, useUpdateTagihanLunas } from "@/hooks/useTagihan";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Search, Printer, Check } from "lucide-react";
@@ -40,6 +41,7 @@ export default function InputPembayaran() {
   const { data: riwayat, isLoading: loadRiwayat } = usePembayaranBySiswa(selectedSiswa?.id);
   const { data: pengaturanAkun } = usePengaturanAkun();
   const createMutation = useCreatePembayaran();
+  const updateTagihanLunas = useUpdateTagihanLunas();
 
   // Search siswa
   const { data: searchResults } = useQuery({
@@ -61,6 +63,10 @@ export default function InputPembayaran() {
 
   // Get kelas_id of the selected student for tarif lookup
   const siswaKelasId = selectedSiswa?.kelas_siswa?.[0]?.kelas?.id;
+  // Check if there's an existing tagihan (piutang) for this student+jenis+bulan
+  const tagihanBulanToCheck = isSekali ? undefined : Number(bulan);
+  const { data: existingTagihan } = useTagihanBySiswa(selectedSiswa?.id, jenisId || undefined, tagihanBulanToCheck);
+
   const { data: tarifNominal } = useTarifSiswa(jenisId || undefined, selectedSiswa?.id, siswaKelasId);
 
   // Auto-detect tunggakan: cek bulan yang sudah dibayar (untuk tipe bulanan)
@@ -116,7 +122,12 @@ export default function InputPembayaran() {
     // A. Validasi akun tersedia
     const kasAkunId = pengaturanAkun?.find((p: any) => p.kode_setting === "kas_tunai")?.akun?.id;
     const pendapatanAkunId = selectedJenis?.akun_pendapatan_id;
-    const bisaAutoJurnal = kasAkunId && pendapatanAkunId;
+    const piutangAkunId = pengaturanAkun?.find((p: any) => p.kode_setting === "piutang_siswa")?.akun?.id;
+
+    // Determine if this payment should clear piutang (tagihan exists)
+    const hasPiutang = existingTagihan && existingTagihan.status === "belum_bayar";
+    const kreditAkunId = hasPiutang ? piutangAkunId : pendapatanAkunId;
+    const bisaAutoJurnal = kasAkunId && kreditAkunId;
 
     if (!bisaAutoJurnal) {
       toast.warning("Akun jurnal belum dikonfigurasi. Pembayaran tersimpan tanpa jurnal otomatis. Silakan buat jurnal manual.");
@@ -133,7 +144,7 @@ export default function InputPembayaran() {
       departemen_id: departemenId || undefined,
     });
 
-    // C. Auto-jurnal jika akun tersedia
+    // C. Auto-jurnal
     if (bisaAutoJurnal && result?.id) {
       try {
         const tahunPembayaran = new Date(tanggalBayar).getFullYear();
@@ -144,14 +155,17 @@ export default function InputPembayaran() {
         if (rpcError) throw rpcError;
         if (!nomorJurnal) throw new Error("Gagal mendapatkan nomor jurnal");
 
+        const kreditLabel = hasPiutang ? "Piutang" : "Pendapatan";
+        const keteranganJurnal = isSekali
+          ? `Penerimaan ${selectedJenis?.nama} - ${selectedSiswa.nama}`
+          : `Penerimaan ${selectedJenis?.nama} - ${selectedSiswa.nama} (${namaBulan(Number(bulan))})`;
+
         const { data: jurnal, error: jErr } = await supabase
           .from("jurnal")
           .insert({
             nomor: nomorJurnal,
             tanggal: tanggalBayar,
-            keterangan: isSekali
-              ? `Penerimaan ${selectedJenis?.nama} - ${selectedSiswa.nama}`
-              : `Penerimaan ${selectedJenis?.nama} - ${selectedSiswa.nama} (${namaBulan(Number(bulan))})`,
+            keterangan: keteranganJurnal,
             referensi: result.id,
             departemen_id: departemenId || null,
             total_debit: Number(jumlah),
@@ -173,10 +187,8 @@ export default function InputPembayaran() {
             },
             {
               jurnal_id: jurnal.id,
-              akun_id: pendapatanAkunId,
-              keterangan: isSekali
-                ? `${selectedJenis?.nama} - ${selectedSiswa.nama}`
-                : `${selectedJenis?.nama} - ${selectedSiswa.nama} ${namaBulan(Number(bulan))}`,
+              akun_id: kreditAkunId,
+              keterangan: `${kreditLabel} ${selectedJenis?.nama} - ${selectedSiswa.nama}`,
               debit: 0,
               kredit: Number(jumlah),
               urutan: 2,
@@ -194,7 +206,16 @@ export default function InputPembayaran() {
       }
     }
 
-    // D. Tampilkan kuitansi
+    // D. Update tagihan status to lunas if piutang existed
+    if (hasPiutang && result?.id) {
+      try {
+        await updateTagihanLunas.mutateAsync({ id: existingTagihan.id, pembayaran_id: result.id });
+      } catch (err) {
+        console.error("Update tagihan gagal:", err);
+      }
+    }
+
+    // E. Tampilkan kuitansi
     setLastPayment({ ...result, jenisNama: selectedJenis?.nama, jenisTipe: selectedJenis?.tipe, siswa: selectedSiswa });
     setShowKuitansi(true);
     setJenisId("");
@@ -312,6 +333,9 @@ export default function InputPembayaran() {
                   </Select>
                   {tarifNominal != null && tarifNominal !== Number(selectedJenis?.nominal || 0) && (
                     <p className="text-xs text-primary mt-1">⚡ Tarif khusus siswa ini: {formatRupiah(tarifNominal)}</p>
+                  )}
+                  {existingTagihan && existingTagihan.status === "belum_bayar" && (
+                    <p className="text-xs text-amber-600 mt-1">📋 Tagihan piutang ditemukan ({formatRupiah(Number(existingTagihan.nominal))}) — jurnal akan mengkredit Piutang</p>
                   )}
                 </div>
 
