@@ -421,16 +421,18 @@ export default function TabTarifTagihan() {
                         </div>
                       )}
 
-                      <div>
-                        <Label className="text-xs">Lembaga (opsional)</Label>
-                        <Select value={genDeptId || "__all__"} onValueChange={(v) => setGenDeptId(v === "__all__" ? "" : v)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__all__">Semua Lembaga</SelectItem>
-                            {lembagaList?.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {!deptId && !siswaId && !kelasId && (
+                        <div>
+                          <Label className="text-xs">Lembaga (opsional — filter generate)</Label>
+                          <Select value={genDeptId || "__all__"} onValueChange={(v) => setGenDeptId(v === "__all__" ? "" : v)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__all__">Semua Lembaga</SelectItem>
+                              {lembagaList?.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
