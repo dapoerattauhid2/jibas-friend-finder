@@ -59,12 +59,20 @@ export default function TabTarifTagihan() {
   // Form fields
   const [jenisId, setJenisId] = useState("");
   const [siswaId, setSiswaId] = useState("");
+  const [deptId, setDeptId] = useState("");
   const [kelasId, setKelasId] = useState("");
   const [tahunAjaranId, setTahunAjaranId] = useState("");
   const [nominal, setNominal] = useState("");
   const [keterangan, setKeterangan] = useState("");
   const [siswaSearch, setSiswaSearch] = useState("");
   const { data: siswaResults } = useSiswaSearch(siswaSearch);
+
+  // Filter kelas by selected lembaga
+  const filteredKelasList = useMemo(() => {
+    if (!kelasList) return [];
+    if (!deptId) return kelasList;
+    return kelasList.filter((k: any) => k.departemen_id === deptId);
+  }, [kelasList, deptId]);
 
   // Auto-generate options
   const [autoGenerate, setAutoGenerate] = useState(true);
@@ -101,13 +109,13 @@ export default function TabTarifTagihan() {
   };
 
   const openAdd = () => {
-    setEditItem(null); setJenisId(""); setSiswaId(""); setKelasId(""); setTahunAjaranId(""); setNominal(""); setKeterangan(""); setSiswaSearch("");
+    setEditItem(null); setJenisId(""); setSiswaId(""); setDeptId(""); setKelasId(""); setTahunAjaranId(""); setNominal(""); setKeterangan(""); setSiswaSearch("");
     setAutoGenerate(true); setGenBulanList([]); setGenDeptId("");
     setDialogOpen(true);
   };
 
   const openEdit = (item: any) => {
-    setEditItem(item); setJenisId(item.jenis_id); setSiswaId(item.siswa_id || ""); setKelasId(item.kelas_id || ""); setTahunAjaranId(item.tahun_ajaran_id || "");
+    setEditItem(item); setJenisId(item.jenis_id); setSiswaId(item.siswa_id || ""); setDeptId(item.kelas?.departemen_id || ""); setKelasId(item.kelas_id || ""); setTahunAjaranId(item.tahun_ajaran_id || "");
     setNominal(String(item.nominal || "")); setKeterangan(item.keterangan || ""); setSiswaSearch(item.siswa ? `${item.siswa.nama} (${item.siswa.nis || '-'})` : "");
     setAutoGenerate(false); setGenBulanList([]); setGenDeptId("");
     setDialogOpen(true);
@@ -129,7 +137,8 @@ export default function TabTarifTagihan() {
             };
             if (siswaId) params.siswa_id = siswaId;
             if (kelasId) params.kelas_id = kelasId;
-            if (genDeptId) params.departemen_id = genDeptId;
+            const effectiveDeptId = genDeptId || deptId;
+            if (effectiveDeptId) params.departemen_id = effectiveDeptId;
             if (!isSekali && genBulanList.length > 0) {
               params.bulan_list = genBulanList;
             }
@@ -303,12 +312,22 @@ export default function TabTarifTagihan() {
               {siswaId && <Button variant="ghost" size="sm" className="mt-1 text-xs" onClick={() => { setSiswaId(""); setSiswaSearch(""); }}>Hapus pilihan siswa</Button>}
             </div>
             <div>
+              <Label>Lembaga (opsional — pilih sebelum kelas)</Label>
+              <Select value={deptId || "__none__"} onValueChange={(v) => { setDeptId(v === "__none__" ? "" : v); setKelasId(""); }} disabled={!!editItem}>
+                <SelectTrigger><SelectValue placeholder="Semua lembaga" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— Semua Lembaga —</SelectItem>
+                  {lembagaList?.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label>Kelas (opsional)</Label>
               <Select value={kelasId || "__none__"} onValueChange={(v) => setKelasId(v === "__none__" ? "" : v)} disabled={!!editItem}>
                 <SelectTrigger><SelectValue placeholder="Semua kelas" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">— Semua Kelas —</SelectItem>
-                  {kelasList?.map((k: any) => <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>)}
+                  {filteredKelasList.map((k: any) => <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -350,7 +369,15 @@ export default function TabTarifTagihan() {
                       <Alert className="py-2">
                         <Info className="h-3 w-3" />
                         <AlertDescription className="text-xs">
-                          Akan membuat tagihan + jurnal piutang untuk semua siswa aktif. Siswa yang sudah punya tagihan akan di-skip.
+                          Akan membuat tagihan + jurnal piutang untuk{" "}
+                          {siswaId
+                            ? <strong>siswa {siswaSearch.split(" (")[0]}</strong>
+                            : kelasId
+                              ? <strong>siswa di kelas {filteredKelasList.find((k: any) => k.id === kelasId)?.nama}</strong>
+                              : (deptId || genDeptId)
+                                ? <strong>siswa di lembaga {lembagaList?.find((l: any) => l.id === (deptId || genDeptId))?.kode}</strong>
+                                : <strong>semua siswa aktif di tahun ajaran terpilih</strong>
+                          }. Siswa yang sudah punya tagihan akan di-skip.
                         </AlertDescription>
                       </Alert>
 
@@ -394,16 +421,18 @@ export default function TabTarifTagihan() {
                         </div>
                       )}
 
-                      <div>
-                        <Label className="text-xs">Lembaga (opsional)</Label>
-                        <Select value={genDeptId || "__all__"} onValueChange={(v) => setGenDeptId(v === "__all__" ? "" : v)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__all__">Semua Lembaga</SelectItem>
-                            {lembagaList?.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {!deptId && !siswaId && !kelasId && (
+                        <div>
+                          <Label className="text-xs">Lembaga (opsional — filter generate)</Label>
+                          <Select value={genDeptId || "__all__"} onValueChange={(v) => setGenDeptId(v === "__all__" ? "" : v)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__all__">Semua Lembaga</SelectItem>
+                              {lembagaList?.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
