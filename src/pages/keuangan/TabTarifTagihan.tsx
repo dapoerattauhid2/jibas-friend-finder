@@ -127,6 +127,8 @@ export default function TabTarifTagihan() {
               tahun_ajaran_id: tahunAjaranId,
               jenis_id: jenisId,
             };
+            if (siswaId) params.siswa_id = siswaId;
+            if (kelasId) params.kelas_id = kelasId;
             if (genDeptId) params.departemen_id = genDeptId;
             if (!isSekali && genBulanList.length > 0) {
               params.bulan_list = genBulanList;

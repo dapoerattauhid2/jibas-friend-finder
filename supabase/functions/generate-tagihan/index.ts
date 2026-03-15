@@ -18,7 +18,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify user with anon client
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const anonClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -26,7 +25,6 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await anonClient.auth.getUser();
     if (authError || !user) throw new Error("Unauthorized");
 
-    // Check role
     const adminClient = createClient(supabaseUrl, serviceKey);
     const { data: profile } = await adminClient
       .from("users_profile")
@@ -39,14 +37,13 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { tahun_ajaran_id, jenis_id, bulan, bulan_list, departemen_id } = body;
+    const { tahun_ajaran_id, jenis_id, bulan, bulan_list, departemen_id, siswa_id, kelas_id } = body;
 
-    // Support both single bulan and bulan_list (array)
     const bulanArray: (number | null)[] = bulan_list && Array.isArray(bulan_list) && bulan_list.length > 0
       ? bulan_list
       : bulan != null
         ? [bulan]
-        : [null]; // null = tipe sekali (no month)
+        : [null];
 
     if (!tahun_ajaran_id || !jenis_id) {
       throw new Error("tahun_ajaran_id dan jenis_id wajib diisi");
@@ -74,32 +71,64 @@ Deno.serve(async (req) => {
       throw new Error(`Akun pendapatan belum diset untuk jenis "${jenis.nama}"`);
     }
 
-    // Get all active students with their classes
-    let siswaQuery = adminClient
-      .from("kelas_siswa")
-      .select("siswa_id, kelas_id, siswa:siswa_id(id, nama, status)")
-      .eq("aktif", true)
-      .eq("tahun_ajaran_id", tahun_ajaran_id);
+    // Get students based on filters: siswa_id > kelas_id > all in tahun_ajaran
+    let kelasSiswaList: { siswa_id: string; kelas_id: string }[] = [];
 
-    if (departemen_id) {
-      siswaQuery = siswaQuery.eq("kelas:kelas_id(departemen_id)", departemen_id);
+    if (siswa_id) {
+      // Specific student - get their kelas for this tahun_ajaran
+      const { data, error } = await adminClient
+        .from("kelas_siswa")
+        .select("siswa_id, kelas_id")
+        .eq("siswa_id", siswa_id)
+        .eq("tahun_ajaran_id", tahun_ajaran_id)
+        .eq("aktif", true);
+      if (error) throw new Error("Gagal mengambil data kelas siswa: " + error.message);
+      kelasSiswaList = data || [];
+      // If student has no kelas_siswa entry, still generate with null kelas
+      if (kelasSiswaList.length === 0) {
+        kelasSiswaList = [{ siswa_id, kelas_id: kelas_id || null as any }];
+      }
+    } else if (kelas_id) {
+      // All students in a specific kelas
+      const { data, error } = await adminClient
+        .from("kelas_siswa")
+        .select("siswa_id, kelas_id")
+        .eq("kelas_id", kelas_id)
+        .eq("tahun_ajaran_id", tahun_ajaran_id)
+        .eq("aktif", true);
+      if (error) throw new Error("Gagal mengambil data kelas siswa: " + error.message);
+      kelasSiswaList = data || [];
+    } else {
+      // All active students in tahun_ajaran
+      const { data, error } = await adminClient
+        .from("kelas_siswa")
+        .select("siswa_id, kelas_id")
+        .eq("aktif", true)
+        .eq("tahun_ajaran_id", tahun_ajaran_id);
+      if (error) throw new Error("Gagal mengambil data kelas siswa: " + error.message);
+      kelasSiswaList = data || [];
     }
 
-    // Use a simpler approach: get all kelas_siswa, then filter
-    const { data: kelasSiswaList, error: ksErr } = await adminClient
-      .from("kelas_siswa")
-      .select("siswa_id, kelas_id")
-      .eq("aktif", true)
-      .eq("tahun_ajaran_id", tahun_ajaran_id);
-
-    if (ksErr) throw new Error("Gagal mengambil data kelas siswa: " + ksErr.message);
-    if (!kelasSiswaList || kelasSiswaList.length === 0) {
-      return new Response(JSON.stringify({ success: true, generated: 0, skipped: 0, message: "Tidak ada siswa aktif di tahun ajaran ini" }), {
+    if (kelasSiswaList.length === 0) {
+      return new Response(JSON.stringify({ success: true, generated: 0, skipped: 0, message: "Tidak ada siswa yang cocok dengan kriteria" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Process each bulan in the array
+    // Filter by departemen if specified and not already filtered by kelas
+    if (departemen_id && !siswa_id && !kelas_id) {
+      const kelasIds = [...new Set(kelasSiswaList.map(ks => ks.kelas_id).filter(Boolean))];
+      if (kelasIds.length > 0) {
+        const { data: kelasData } = await adminClient
+          .from("kelas")
+          .select("id")
+          .eq("departemen_id", departemen_id)
+          .in("id", kelasIds);
+        const validKelasIds = new Set((kelasData || []).map(k => k.id));
+        kelasSiswaList = kelasSiswaList.filter(ks => validKelasIds.has(ks.kelas_id));
+      }
+    }
+
     let generated = 0;
     let skipped = 0;
     const errors: string[] = [];
@@ -107,7 +136,6 @@ Deno.serve(async (req) => {
     const tahunSekarang = new Date().getFullYear();
 
     for (const currentBulan of bulanArray) {
-      // Check existing tagihan to avoid duplicates
       let existingQuery = adminClient
         .from("tagihan")
         .select("siswa_id")
@@ -122,9 +150,9 @@ Deno.serve(async (req) => {
 
       const { data: existingTagihan } = await existingQuery;
       const existingSet = new Set((existingTagihan || []).map((t) => t.siswa_id));
-      skipped += existingSet.size;
 
       const toGenerate = kelasSiswaList.filter((ks) => !existingSet.has(ks.siswa_id));
+      skipped += kelasSiswaList.length - toGenerate.length;
       if (toGenerate.length === 0) continue;
 
       for (const ks of toGenerate) {
