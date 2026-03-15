@@ -137,7 +137,8 @@ export default function TabTarifTagihan() {
             };
             if (siswaId) params.siswa_id = siswaId;
             if (kelasId) params.kelas_id = kelasId;
-            if (genDeptId) params.departemen_id = genDeptId;
+            const effectiveDeptId = genDeptId || deptId;
+            if (effectiveDeptId) params.departemen_id = effectiveDeptId;
             if (!isSekali && genBulanList.length > 0) {
               params.bulan_list = genBulanList;
             }
