@@ -59,12 +59,20 @@ export default function TabTarifTagihan() {
   // Form fields
   const [jenisId, setJenisId] = useState("");
   const [siswaId, setSiswaId] = useState("");
+  const [deptId, setDeptId] = useState("");
   const [kelasId, setKelasId] = useState("");
   const [tahunAjaranId, setTahunAjaranId] = useState("");
   const [nominal, setNominal] = useState("");
   const [keterangan, setKeterangan] = useState("");
   const [siswaSearch, setSiswaSearch] = useState("");
   const { data: siswaResults } = useSiswaSearch(siswaSearch);
+
+  // Filter kelas by selected lembaga
+  const filteredKelasList = useMemo(() => {
+    if (!kelasList) return [];
+    if (!deptId) return kelasList;
+    return kelasList.filter((k: any) => k.departemen_id === deptId);
+  }, [kelasList, deptId]);
 
   // Auto-generate options
   const [autoGenerate, setAutoGenerate] = useState(true);
