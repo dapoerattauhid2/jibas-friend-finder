@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useJenisPembayaran, usePembayaranBySiswa, useCreatePembayaran, useLembaga, formatRupiah, terbilang, namaBulan } from "@/hooks/useKeuangan";
 import { useTarifSiswa } from "@/hooks/useTarifTagihan";
 import { usePengaturanAkun } from "@/hooks/useJurnal";
+import { useTagihanBySiswa, useUpdateTagihanLunas } from "@/hooks/useTagihan";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Search, Printer, Check } from "lucide-react";
