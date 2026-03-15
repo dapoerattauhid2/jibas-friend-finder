@@ -34,6 +34,7 @@ import InputPembayaran from "./pages/keuangan/InputPembayaran";
 import TunggakanPembayaran from "./pages/keuangan/TunggakanPembayaran";
 import InputPengeluaran from "./pages/keuangan/InputPengeluaran";
 import TabunganSiswa from "./pages/keuangan/TabunganSiswa";
+import TabunganPegawai from "./pages/keuangan/TabunganPegawai";
 import LaporanKeuangan from "./pages/keuangan/LaporanKeuangan";
 import ReferensiKeuangan from "./pages/keuangan/ReferensiKeuangan";
 import JurnalUmum from "./pages/keuangan/JurnalUmum";
@@ -140,6 +141,7 @@ const App = () => (
                 <Route element={<ProtectedRoute allowedRoles={["admin", "kepala_sekolah", "keuangan"]} />}>
                   <Route path="/keuangan/pengeluaran" element={<InputPengeluaran />} />
                   <Route path="/keuangan/tabungan" element={<TabunganSiswa />} />
+                  <Route path="/keuangan/tabungan-pegawai" element={<TabunganPegawai />} />
                   <Route path="/keuangan/laporan" element={<LaporanKeuangan />} />
                   <Route path="/keuangan/laporan-siswa" element={<LaporanBayarSiswa />} />
                   <Route path="/keuangan/laporan-kelas" element={<LaporanBayarKelas />} />

@@ -266,9 +266,38 @@ export function useTransaksiTabungan() {
 
       if (newSaldo < 0) throw new Error("Saldo tidak mencukupi");
 
+      // Auto-jurnal
+      let jurnalId: string | null = null;
+      const { data: pengaturan } = await supabase.from("pengaturan_akun").select("kode_setting, akun_id");
+      const kasAkunId = pengaturan?.find(p => p.kode_setting === "kas_tunai")?.akun_id;
+      const tabunganAkunId = pengaturan?.find(p => p.kode_setting === "tabungan_siswa")?.akun_id;
+
+      if (kasAkunId && tabunganAkunId) {
+        const tahun = new Date(values.tanggal).getFullYear();
+        const { data: nomor } = await supabase.rpc("generate_nomor_jurnal", { p_prefix: "JT", p_tahun: tahun });
+        if (nomor) {
+          const debitAkun = values.jenis === "setor" ? kasAkunId : tabunganAkunId;
+          const kreditAkun = values.jenis === "setor" ? tabunganAkunId : kasAkunId;
+          const ket = `Tabungan siswa ${values.jenis} - ${values.keterangan || ""}`.trim();
+
+          const { data: jurnal } = await supabase.from("jurnal").insert({
+            nomor, tanggal: values.tanggal, keterangan: ket,
+            total_debit: values.jumlah, total_kredit: values.jumlah, status: "posted",
+          }).select().single();
+
+          if (jurnal) {
+            jurnalId = (jurnal as any).id;
+            await supabase.from("jurnal_detail").insert([
+              { jurnal_id: jurnalId, akun_id: debitAkun, keterangan: ket, debit: values.jumlah, kredit: 0, urutan: 1 },
+              { jurnal_id: jurnalId, akun_id: kreditAkun, keterangan: ket, debit: 0, kredit: values.jumlah, urutan: 2 },
+            ]);
+          }
+        }
+      }
+
       const { error: txError } = await supabase
         .from("transaksi_tabungan")
-        .insert({ ...values, saldo_sesudah: newSaldo });
+        .insert({ ...values, saldo_sesudah: newSaldo, jurnal_id: jurnalId });
       if (txError) throw txError;
 
       if (tabungan) {
@@ -288,7 +317,122 @@ export function useTransaksiTabungan() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tabungan"] });
       qc.invalidateQueries({ queryKey: ["transaksi_tabungan"] });
+      qc.invalidateQueries({ queryKey: ["jurnal"] });
       toast.success("Transaksi tabungan berhasil");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+}
+
+// ─── Tabungan Pegawai ───
+export function useTabunganPegawai(pegawaiId?: string) {
+  return useQuery({
+    queryKey: ["tabungan_pegawai", pegawaiId],
+    enabled: !!pegawaiId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabungan_pegawai")
+        .select("*")
+        .eq("pegawai_id", pegawaiId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+}
+
+export function useTransaksiTabunganPegawaiList(pegawaiId?: string) {
+  return useQuery({
+    queryKey: ["transaksi_tabungan_pegawai", pegawaiId],
+    enabled: !!pegawaiId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transaksi_tabungan_pegawai")
+        .select("*")
+        .eq("pegawai_id", pegawaiId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+}
+
+export function useTransaksiTabunganPegawai() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (values: {
+      pegawai_id: string;
+      jenis: "setor" | "ambil";
+      jumlah: number;
+      tanggal: string;
+      keterangan?: string;
+    }) => {
+      const { data: tabungan } = await supabase
+        .from("tabungan_pegawai")
+        .select("saldo")
+        .eq("pegawai_id", values.pegawai_id)
+        .maybeSingle();
+
+      const currentSaldo = Number((tabungan as any)?.saldo || 0);
+      const newSaldo = values.jenis === "setor"
+        ? currentSaldo + values.jumlah
+        : currentSaldo - values.jumlah;
+
+      if (newSaldo < 0) throw new Error("Saldo tidak mencukupi");
+
+      // Auto-jurnal
+      let jurnalId: string | null = null;
+      const { data: pengaturan } = await supabase.from("pengaturan_akun").select("kode_setting, akun_id");
+      const kasAkunId = pengaturan?.find(p => p.kode_setting === "kas_tunai")?.akun_id;
+      const tabunganAkunId = pengaturan?.find(p => p.kode_setting === "tabungan_pegawai")?.akun_id;
+
+      if (kasAkunId && tabunganAkunId) {
+        const tahun = new Date(values.tanggal).getFullYear();
+        const { data: nomor } = await supabase.rpc("generate_nomor_jurnal", { p_prefix: "JT", p_tahun: tahun });
+        if (nomor) {
+          const debitAkun = values.jenis === "setor" ? kasAkunId : tabunganAkunId;
+          const kreditAkun = values.jenis === "setor" ? tabunganAkunId : kasAkunId;
+          const ket = `Tabungan pegawai ${values.jenis} - ${values.keterangan || ""}`.trim();
+
+          const { data: jurnal } = await supabase.from("jurnal").insert({
+            nomor, tanggal: values.tanggal, keterangan: ket,
+            total_debit: values.jumlah, total_kredit: values.jumlah, status: "posted",
+          }).select().single();
+
+          if (jurnal) {
+            jurnalId = (jurnal as any).id;
+            await supabase.from("jurnal_detail").insert([
+              { jurnal_id: jurnalId, akun_id: debitAkun, keterangan: ket, debit: values.jumlah, kredit: 0, urutan: 1 },
+              { jurnal_id: jurnalId, akun_id: kreditAkun, keterangan: ket, debit: 0, kredit: values.jumlah, urutan: 2 },
+            ]);
+          }
+        }
+      }
+
+      const { error: txError } = await supabase
+        .from("transaksi_tabungan_pegawai")
+        .insert({ ...values, saldo_sesudah: newSaldo, jurnal_id: jurnalId } as any);
+      if (txError) throw txError;
+
+      if (tabungan) {
+        const { error } = await supabase
+          .from("tabungan_pegawai")
+          .update({ saldo: newSaldo, updated_at: new Date().toISOString() })
+          .eq("pegawai_id", values.pegawai_id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("tabungan_pegawai")
+          .insert({ pegawai_id: values.pegawai_id, saldo: newSaldo } as any);
+        if (error) throw error;
+      }
+      return newSaldo;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tabungan_pegawai"] });
+      qc.invalidateQueries({ queryKey: ["transaksi_tabungan_pegawai"] });
+      qc.invalidateQueries({ queryKey: ["jurnal"] });
+      toast.success("Transaksi tabungan pegawai berhasil");
     },
     onError: (e: any) => toast.error(e.message),
   });

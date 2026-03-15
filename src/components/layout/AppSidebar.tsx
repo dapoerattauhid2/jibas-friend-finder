@@ -63,6 +63,7 @@ const menuItems: MenuItem[] = [
       { title: "Tunggakan", url: "/keuangan/tunggakan", roles: ["admin", "kepala_sekolah", "keuangan", "kasir"] },
       { title: "Pengeluaran", url: "/keuangan/pengeluaran", roles: ["admin", "kepala_sekolah", "keuangan"] },
       { title: "Tabungan Siswa", url: "/keuangan/tabungan", roles: ["admin", "kepala_sekolah", "keuangan"] },
+      { title: "Tabungan Pegawai", url: "/keuangan/tabungan-pegawai", roles: ["admin", "kepala_sekolah", "keuangan"] },
       { title: "Laporan Per Siswa", url: "/keuangan/laporan-siswa", roles: ["admin", "kepala_sekolah", "keuangan"] },
       { title: "Laporan Per Kelas", url: "/keuangan/laporan-kelas", roles: ["admin", "kepala_sekolah", "keuangan"] },
       { title: "Rekap Harian", url: "/keuangan/rekap-harian", roles: ["admin", "kepala_sekolah", "keuangan"] },

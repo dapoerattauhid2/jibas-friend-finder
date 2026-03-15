@@ -2759,6 +2759,35 @@ export type Database = {
           },
         ]
       }
+      tabungan_pegawai: {
+        Row: {
+          id: string
+          pegawai_id: string
+          saldo: number
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          pegawai_id: string
+          saldo?: number
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          pegawai_id?: string
+          saldo?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tabungan_pegawai_pegawai_id_fkey"
+            columns: ["pegawai_id"]
+            isOneToOne: true
+            referencedRelation: "pegawai"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tabungan_siswa: {
         Row: {
           id: string
@@ -3152,6 +3181,7 @@ export type Database = {
           id: string
           jenis: string
           jumlah: number
+          jurnal_id: string | null
           keterangan: string | null
           petugas_id: string | null
           saldo_sesudah: number | null
@@ -3163,6 +3193,7 @@ export type Database = {
           id?: string
           jenis: string
           jumlah: number
+          jurnal_id?: string | null
           keterangan?: string | null
           petugas_id?: string | null
           saldo_sesudah?: number | null
@@ -3174,6 +3205,7 @@ export type Database = {
           id?: string
           jenis?: string
           jumlah?: number
+          jurnal_id?: string | null
           keterangan?: string | null
           petugas_id?: string | null
           saldo_sesudah?: number | null
@@ -3181,6 +3213,13 @@ export type Database = {
           tanggal?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transaksi_tabungan_jurnal_id_fkey"
+            columns: ["jurnal_id"]
+            isOneToOne: false
+            referencedRelation: "jurnal"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transaksi_tabungan_petugas_id_fkey"
             columns: ["petugas_id"]
@@ -3201,6 +3240,67 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tagihan_belum_bayar"
             referencedColumns: ["siswa_id"]
+          },
+        ]
+      }
+      transaksi_tabungan_pegawai: {
+        Row: {
+          created_at: string | null
+          id: string
+          jenis: string
+          jumlah: number
+          jurnal_id: string | null
+          keterangan: string | null
+          pegawai_id: string
+          petugas_id: string | null
+          saldo_sesudah: number | null
+          tanggal: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          jenis?: string
+          jumlah?: number
+          jurnal_id?: string | null
+          keterangan?: string | null
+          pegawai_id: string
+          petugas_id?: string | null
+          saldo_sesudah?: number | null
+          tanggal?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          jenis?: string
+          jumlah?: number
+          jurnal_id?: string | null
+          keterangan?: string | null
+          pegawai_id?: string
+          petugas_id?: string | null
+          saldo_sesudah?: number | null
+          tanggal?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaksi_tabungan_pegawai_jurnal_id_fkey"
+            columns: ["jurnal_id"]
+            isOneToOne: false
+            referencedRelation: "jurnal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaksi_tabungan_pegawai_pegawai_id_fkey"
+            columns: ["pegawai_id"]
+            isOneToOne: false
+            referencedRelation: "pegawai"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaksi_tabungan_pegawai_petugas_id_fkey"
+            columns: ["petugas_id"]
+            isOneToOne: false
+            referencedRelation: "pegawai"
+            referencedColumns: ["id"]
           },
         ]
       }
