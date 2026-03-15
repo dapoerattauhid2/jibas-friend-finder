@@ -41,6 +41,7 @@ export default function InputPembayaran() {
   const { data: riwayat, isLoading: loadRiwayat } = usePembayaranBySiswa(selectedSiswa?.id);
   const { data: pengaturanAkun } = usePengaturanAkun();
   const createMutation = useCreatePembayaran();
+  const updateTagihanLunas = useUpdateTagihanLunas();
 
   // Search siswa
   const { data: searchResults } = useQuery({
