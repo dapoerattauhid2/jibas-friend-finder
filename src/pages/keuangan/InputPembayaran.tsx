@@ -37,6 +37,7 @@ export default function InputPembayaran() {
   const [keterangan, setKeterangan] = useState("");
 
   const { data: lembagaList } = useLembaga();
+  const { data: tahunAktif } = useTahunAjaranAktif();
   const { data: jenisList } = useJenisPembayaran(departemenId || undefined);
   const { data: riwayat, isLoading: loadRiwayat } = usePembayaranBySiswa(selectedSiswa?.id);
   const { data: pengaturanAkun } = usePengaturanAkun();
