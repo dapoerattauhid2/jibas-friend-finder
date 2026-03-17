@@ -60,6 +60,7 @@ export default function LaporanBayarKelas() {
         .from("pembayaran")
         .select("siswa_id, bulan, jumlah")
         .eq("jenis_id", jenisId)
+        .eq("tahun_ajaran_id", tahunAjaranId)
         .in("siswa_id", siswaIds);
 
       const jenis = jenisList?.find((j: any) => j.id === jenisId);
