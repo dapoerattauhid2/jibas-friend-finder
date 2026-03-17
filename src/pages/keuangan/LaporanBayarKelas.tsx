@@ -48,6 +48,7 @@ export default function LaporanBayarKelas() {
         .from("kelas_siswa")
         .select("siswa:siswa_id(id, nama, nis)")
         .eq("kelas_id", kelasId)
+        .eq("tahun_ajaran_id", tahunAjaranId)
         .eq("aktif", true);
 
       if (!kelasSiswa?.length) return [];
