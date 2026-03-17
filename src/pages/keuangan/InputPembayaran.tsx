@@ -155,6 +155,16 @@ export default function InputPembayaran() {
     }
   }, [tarifNominal, jenisId]);
 
+  // Default selectedTahunAjaranId to active
+  useEffect(() => {
+    if (tahunAktif?.id && !selectedTahunAjaranId) {
+      setSelectedTahunAjaranId(tahunAktif.id);
+    }
+  }, [tahunAktif?.id]);
+
+  const effectiveTahunAjaranId = selectedTahunAjaranId || tahunAktif?.id;
+  const isBayarDimuka = !!(tahunAktif?.id && effectiveTahunAjaranId && effectiveTahunAjaranId !== tahunAktif.id);
+
   const handleSelectSiswa = (s: any) => {
     setSelectedSiswa(s);
     setSearchTerm("");
