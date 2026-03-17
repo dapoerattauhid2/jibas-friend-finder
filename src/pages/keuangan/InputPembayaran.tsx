@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,7 @@ import { usePengaturanAkun } from "@/hooks/useJurnal";
 import { useTagihanBySiswa, useUpdateTagihanLunas } from "@/hooks/useTagihan";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, Printer, Check } from "lucide-react";
+import { Search, Printer, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -41,26 +41,18 @@ export default function InputPembayaran() {
   const { data: allJenisList } = useJenisPembayaran(departemenId || undefined);
   const { data: riwayat, isLoading: loadRiwayat } = usePembayaranBySiswa(selectedSiswa?.id);
 
-  // Get kelas_id of the selected student for tarif lookup
   const siswaKelasId = selectedSiswa?.kelas_siswa?.[0]?.kelas?.id;
 
-  // Fetch tarif_tagihan entries applicable to the selected student to filter jenis dropdown
   const { data: applicableTarifJenisIds } = useQuery({
     queryKey: ["applicable_tarif_jenis", selectedSiswa?.id, siswaKelasId, tahunAktif?.id, departemenId],
     enabled: !!selectedSiswa && !!departemenId,
     queryFn: async () => {
-      // Get all active tarif_tagihan that could match this student
-      // Matches: siswa-specific, kelas-specific, or tahun_ajaran-specific
       const kelasId = selectedSiswa?.kelas_siswa?.[0]?.kelas?.id || null;
-      let q = supabase
+      const q = supabase
         .from("tarif_tagihan")
         .select("jenis_id, siswa_id, kelas_id, tahun_ajaran_id")
         .eq("aktif", true);
 
-      // We need entries where:
-      // siswa_id = this student OR siswa_id IS NULL (class/year level)
-      // AND kelas_id = student's class OR kelas_id IS NULL
-      // AND tahun_ajaran_id = active year OR tahun_ajaran_id IS NULL
       const { data, error } = await q;
       if (error) throw error;
       if (!data) return new Set<string>();
@@ -79,42 +71,47 @@ export default function InputPembayaran() {
     },
   });
 
-  // Filter jenis list to only those with configured tarif
   const jenisList = useMemo(() => {
     if (!allJenisList) return [];
     if (!selectedSiswa || !applicableTarifJenisIds) return allJenisList;
     return allJenisList.filter((j: any) => applicableTarifJenisIds.has(j.id));
   }, [allJenisList, selectedSiswa, applicableTarifJenisIds]);
+
   const { data: pengaturanAkun } = usePengaturanAkun();
   const createMutation = useCreatePembayaran();
   const updateTagihanLunas = useUpdateTagihanLunas();
 
-  // Search siswa
+  // Global search — departemenId is optional filter
   const { data: searchResults } = useQuery({
-    queryKey: ["search_siswa", searchTerm],
-    enabled: searchTerm.length >= 2 && !!departemenId,
+    queryKey: ["search_siswa", searchTerm, departemenId],
+    enabled: searchTerm.length >= 2,
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("siswa")
-        .select("id, nis, nama, foto_url, status, kelas_siswa(kelas_id, kelas(id, nama))")
+        .select("id, nis, nama, foto_url, status, kelas_siswa(kelas_id, kelas(id, nama, departemen_id))")
         .or(`nama.ilike.%${searchTerm}%,nis.ilike.%${searchTerm}%`)
         .eq("status", "aktif")
         .limit(10);
-      return data || [];
+      const { data } = await q;
+      if (!data) return [];
+      // Client-side filter by departemen if selected
+      if (departemenId) {
+        return data.filter((s: any) =>
+          s.kelas_siswa?.some((ks: any) => ks.kelas?.departemen_id === departemenId)
+        );
+      }
+      return data;
     },
   });
 
   const selectedJenis = jenisList?.find((j: any) => j.id === jenisId);
   const isSekali = selectedJenis?.tipe === "sekali";
 
-  // Check if there's an existing tagihan (piutang) for this student+jenis+bulan
-  // Check if there's an existing tagihan (piutang) for this student+jenis+bulan
   const tagihanBulanToCheck = isSekali ? undefined : Number(bulan);
   const { data: existingTagihan } = useTagihanBySiswa(selectedSiswa?.id, jenisId || undefined, tagihanBulanToCheck);
 
   const { data: tarifNominal } = useTarifSiswa(jenisId || undefined, selectedSiswa?.id, siswaKelasId, tahunAktif?.id);
 
-  // Auto-detect tunggakan: cek bulan yang sudah dibayar (untuk tipe bulanan)
   const { data: bulanDibayar } = useQuery({
     queryKey: ["cek_tunggakan", selectedSiswa?.id, jenisId],
     enabled: !!selectedSiswa && !!jenisId && !isSekali,
@@ -129,7 +126,6 @@ export default function InputPembayaran() {
     },
   });
 
-  // Cek status pembayaran sekali bayar
   const { data: pembayaranSekali } = useQuery({
     queryKey: ["cek_sekali", selectedSiswa?.id, jenisId],
     enabled: !!selectedSiswa && !!jenisId && isSekali,
@@ -149,7 +145,6 @@ export default function InputPembayaran() {
   const sudahBayar = bulanDibayar ? Array.from({ length: 12 }, (_, i) => bulanDibayar.has(i + 1)).filter(Boolean).length : 0;
   const belumBayar = bulanDibayar ? 12 - sudahBayar : 0;
 
-  // Auto-set jumlah when tarif loads
   useEffect(() => {
     if (tarifNominal != null && jenisId) {
       setJumlah(String(tarifNominal));
@@ -159,23 +154,25 @@ export default function InputPembayaran() {
   const handleSelectSiswa = (s: any) => {
     setSelectedSiswa(s);
     setSearchTerm("");
+    // Auto-detect departemen from student's kelas
+    const dept = s.kelas_siswa?.[0]?.kelas?.departemen_id;
+    if (dept && !departemenId) {
+      setDepartemenId(dept);
+    }
   };
 
   const tarifTidakAda = jenisId && selectedSiswa && tarifNominal == null;
   const effectiveTarif = tarifNominal ?? 0;
-  // Only lock amount for bulanan types; sekali bayar allows partial/installment payments
   const isJumlahLocked = !isSekali && tarifNominal != null;
 
   const handleSubmit = async () => {
     if (!selectedSiswa || !jenisId || !jumlah || tarifTidakAda) return;
 
-    // Validasi: untuk tipe bulanan, jumlah harus sesuai tarif
     if (!isSekali && isJumlahLocked && Number(jumlah) !== effectiveTarif) {
       toast.error(`Jumlah harus sesuai tarif: ${formatRupiah(effectiveTarif)}`);
       return;
     }
 
-    // Validasi: untuk sekali bayar, jumlah tidak boleh melebihi sisa
     if (isSekali && pembayaranSekali) {
       const sisa = effectiveTarif - pembayaranSekali.totalBayar;
       if (Number(jumlah) > sisa) {
@@ -189,21 +186,18 @@ export default function InputPembayaran() {
       return;
     }
 
-    // A. Validasi akun tersedia
     const kasAkunId = pengaturanAkun?.find((p: any) => p.kode_setting === "kas_tunai")?.akun?.id;
     const pendapatanAkunId = selectedJenis?.akun_pendapatan_id;
     const piutangAkunId = pengaturanAkun?.find((p: any) => p.kode_setting === "piutang_siswa")?.akun?.id;
 
-    // Determine if this payment should clear piutang (tagihan exists)
     const hasPiutang = existingTagihan && existingTagihan.status === "belum_bayar";
     const kreditAkunId = hasPiutang ? piutangAkunId : pendapatanAkunId;
     const bisaAutoJurnal = kasAkunId && kreditAkunId;
 
     if (!bisaAutoJurnal) {
-      toast.warning("Akun jurnal belum dikonfigurasi. Pembayaran tersimpan tanpa jurnal otomatis. Silakan buat jurnal manual.");
+      toast.warning("Akun jurnal belum dikonfigurasi. Pembayaran tersimpan tanpa jurnal otomatis.");
     }
 
-    // B. Simpan pembayaran
     const result = await createMutation.mutateAsync({
       siswa_id: selectedSiswa.id,
       jenis_id: jenisId,
@@ -215,7 +209,6 @@ export default function InputPembayaran() {
       tahun_ajaran_id: tahunAktif?.id || undefined,
     });
 
-    // C. Auto-jurnal
     if (bisaAutoJurnal && result?.id) {
       try {
         const tahunPembayaran = new Date(tanggalBayar).getFullYear();
@@ -273,11 +266,10 @@ export default function InputPembayaran() {
         }
       } catch (jurnalError: any) {
         console.error("Auto-jurnal gagal:", jurnalError);
-        toast.warning("Pembayaran berhasil, tapi jurnal otomatis gagal dibuat. Buat jurnal manual.");
+        toast.warning("Pembayaran berhasil, tapi jurnal otomatis gagal dibuat.");
       }
     }
 
-    // D. Update tagihan status to lunas if piutang existed
     if (hasPiutang && result?.id) {
       try {
         await updateTagihanLunas.mutateAsync({ id: existingTagihan.id, pembayaran_id: result.id });
@@ -286,7 +278,6 @@ export default function InputPembayaran() {
       }
     }
 
-    // E. Tampilkan kuitansi
     setLastPayment({ ...result, jenisNama: selectedJenis?.nama, jenisTipe: selectedJenis?.tipe, siswa: selectedSiswa });
     setShowKuitansi(true);
     setJenisId("");
@@ -305,230 +296,251 @@ export default function InputPembayaran() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Pembayaran SPP</h1>
-        <p className="text-sm text-muted-foreground">Input dan kelola pembayaran siswa</p>
+    <div className="space-y-0 animate-fade-in">
+      {/* Header */}
+      <div className="mb-3">
+        <h1 className="text-xl font-bold text-foreground">Pembayaran SPP</h1>
+        <p className="text-xs text-muted-foreground">Input dan kelola pembayaran siswa</p>
         {!tahunAktif && (
-          <p className="text-sm text-destructive font-medium mt-1">⚠️ Tahun ajaran aktif belum dikonfigurasi. Tarif dan pembayaran tidak akan berfungsi dengan benar.</p>
+          <p className="text-xs text-destructive font-medium mt-1">⚠️ Tahun ajaran aktif belum dikonfigurasi.</p>
         )}
       </div>
 
-      {/* Lembaga + Search */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <div className="max-w-md">
-            <Label>Pilih Lembaga</Label>
-            <Select value={departemenId} onValueChange={(v) => {
-              setDepartemenId(v);
-              setSelectedSiswa(null);
-              setJenisId("");
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih lembaga terlebih dahulu" />
-              </SelectTrigger>
-              <SelectContent>
-                {lembagaList?.map((l: any) => (
-                  <SelectItem key={l.id} value={l.id}>
-                    {l.kode} — {l.nama}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cari siswa (NIS atau nama)..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-              disabled={!departemenId}
-            />
-            {searchResults && searchResults.length > 0 && searchTerm.length >= 2 && (
-              <div className="absolute z-50 mt-1 w-full bg-popover border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                {searchResults.map((s: any) => (
-                  <button
-                    key={s.id}
-                    className="w-full text-left px-4 py-2.5 hover:bg-accent flex items-center gap-3"
-                    onClick={() => handleSelectSiswa(s)}
-                  >
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
-                      {s.nama?.[0]}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{s.nama}</p>
-                      <p className="text-xs text-muted-foreground">NIS: {s.nis || "-"}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Search bar — prominent, full width */}
+      <div className="flex gap-2 items-end border-b border-border pb-3 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            placeholder="Ketik NIS atau nama siswa untuk mencari..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-11 text-base"
+          />
+          {searchResults && searchResults.length > 0 && searchTerm.length >= 2 && (
+            <div className="absolute z-50 mt-1 w-full bg-popover border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {searchResults.map((s: any) => (
+                <button
+                  key={s.id}
+                  className="w-full text-left px-4 py-2.5 hover:bg-accent flex items-center gap-3"
+                  onClick={() => handleSelectSiswa(s)}
+                >
+                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold shrink-0">
+                    {s.nama?.[0]}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{s.nama}</p>
+                    <p className="text-xs text-muted-foreground">
+                      NIS: {s.nis || "-"} • {s.kelas_siswa?.[0]?.kelas?.nama || "-"}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="shrink-0">
+          <Select value={departemenId || "__all__"} onValueChange={(v) => {
+            setDepartemenId(v === "__all__" ? "" : v);
+            setSelectedSiswa(null);
+            setJenisId("");
+          }}>
+            <SelectTrigger className="w-44 h-11">
+              <SelectValue placeholder="Semua lembaga" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Semua Lembaga</SelectItem>
+              {lembagaList?.map((l: any) => (
+                <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {selectedSiswa && (
+          <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => { setSelectedSiswa(null); setJenisId(""); }}>
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
 
-      {selectedSiswa && (
-        <>
-          {/* Student info */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center text-lg font-bold text-primary">
+      {/* Two-column layout after student selected */}
+      {selectedSiswa ? (
+        <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+          {/* Left: Student profile + recent payments */}
+          <div className="space-y-4">
+            {/* Student card */}
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-lg font-bold text-primary shrink-0">
                   {selectedSiswa.nama?.[0]}
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg">{selectedSiswa.nama}</h3>
-                  <p className="text-sm text-muted-foreground">NIS: {selectedSiswa.nis || "-"} • Kelas: {kelasNama} • Lembaga: {lembagaNama}</p>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-sm truncate">{selectedSiswa.nama}</h3>
+                  <p className="text-xs text-muted-foreground">NIS: {selectedSiswa.nis || "-"}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              <div className="grid grid-cols-2 gap-1 text-xs">
+                <span className="text-muted-foreground">Kelas</span>
+                <span className="font-medium">{kelasNama}</span>
+                <span className="text-muted-foreground">Lembaga</span>
+                <span className="font-medium">{lembagaNama}</span>
+              </div>
+            </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Payment form */}
-            <Card>
-              <CardHeader><CardTitle>Input Pembayaran</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Jenis Pembayaran</Label>
-                  <Select value={jenisId} onValueChange={(v) => {
-                    setJenisId(v);
-                    setJumlah("");
-                  }}>
-                    <SelectTrigger><SelectValue placeholder="Pilih jenis" /></SelectTrigger>
+            {/* Recent payments */}
+            <div className="rounded-lg border p-4">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Riwayat Terakhir</h4>
+              <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                {loadRiwayat ? (
+                  <p className="text-xs text-muted-foreground">Memuat...</p>
+                ) : (riwayat as any[])?.length ? (
+                  (riwayat as any[]).slice(0, 8).map((r: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/50 last:border-0">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{r.jenis_pembayaran?.nama || "-"}</p>
+                        <p className="text-muted-foreground">{r.bulan ? namaBulan(r.bulan) : "-"} • {r.tanggal_bayar ? format(new Date(r.tanggal_bayar), "dd/MM/yy") : "-"}</p>
+                      </div>
+                      <span className="font-medium text-primary shrink-0 ml-2">{formatRupiah(Number(r.jumlah))}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground">Belum ada riwayat</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Payment form */}
+          <div className="rounded-lg border p-4 space-y-4">
+            <h4 className="text-sm font-semibold">Input Pembayaran</h4>
+
+            {/* Row 1: Jenis + Bulan inline */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Jenis Pembayaran</Label>
+                <Select value={jenisId} onValueChange={(v) => { setJenisId(v); setJumlah(""); }}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Pilih jenis" /></SelectTrigger>
+                  <SelectContent>
+                    {jenisList?.map((j: any) => (
+                      <SelectItem key={j.id} value={j.id}>{j.nama}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {tarifNominal != null && (
+                  <p className="text-[11px] text-primary">⚡ Tarif: {formatRupiah(tarifNominal)}</p>
+                )}
+                {tarifTidakAda && (
+                  <p className="text-[11px] text-destructive font-medium">⚠️ Tarif belum dikonfigurasi</p>
+                )}
+                {existingTagihan && existingTagihan.status === "belum_bayar" && (
+                  <p className="text-[11px] text-amber-600">📋 Piutang: {formatRupiah(Number(existingTagihan.nominal))}</p>
+                )}
+              </div>
+
+              {!isSekali && !(jenisId && bulanDibayar) && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Bulan</Label>
+                  <Select value={bulan} onValueChange={setBulan}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {jenisList?.map((j: any) => (
-                        <SelectItem key={j.id} value={j.id}>{j.nama}</SelectItem>
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <SelectItem key={i + 1} value={String(i + 1)}>{namaBulan(i + 1)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {tarifNominal != null && (
-                    <p className="text-xs text-primary mt-1">⚡ Tarif siswa ini: {formatRupiah(tarifNominal)}</p>
-                  )}
-                  {tarifTidakAda && (
-                    <p className="text-xs text-destructive mt-1 font-medium">⚠️ Tarif belum dikonfigurasi untuk siswa ini. Pembayaran tidak dapat dilakukan.</p>
-                  )}
-                  {existingTagihan && existingTagihan.status === "belum_bayar" && (
-                    <p className="text-xs text-amber-600 mt-1">📋 Tagihan piutang ditemukan ({formatRupiah(Number(existingTagihan.nominal))}) — jurnal akan mengkredit Piutang</p>
-                  )}
                 </div>
+              )}
+            </div>
 
-                {/* Grid 12 bulan - hanya untuk tipe bulanan */}
-                {jenisId && !isSekali && !tarifTidakAda && bulanDibayar && (
-                  <div className="space-y-3">
-                    <Label>Status Pembayaran Per Bulan</Label>
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                      {Array.from({ length: 12 }, (_, i) => {
-                        const m = i + 1;
-                        const sudah = bulanDibayar.has(m);
-                        const isSelected = bulan === String(m);
-                        return (
-                          <button
-                            key={m}
-                            type="button"
-                            disabled={sudah}
-                            onClick={() => !sudah && setBulan(String(m))}
-                            className={cn(
-                              "flex flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-xs font-medium transition-all",
-                              sudah
-                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 cursor-default"
-                                : isSelected
-                                  ? "bg-primary/10 border-primary ring-2 ring-primary/50 text-primary cursor-pointer"
-                                  : "bg-destructive/5 border-destructive/30 text-destructive hover:bg-destructive/10 cursor-pointer"
-                            )}
-                          >
-                            {sudah && <Check className="h-3.5 w-3.5" />}
-                            <span>{namaBulan(m).slice(0, 3)}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Sudah lunas: <span className="font-medium text-emerald-600">{sudahBayar} bulan</span>
-                      {" | "}
-                      Belum bayar: <span className="font-medium text-destructive">{belumBayar} bulan</span>
-                    </p>
-                  </div>
-                )}
-
-                {/* Status sekali bayar */}
-                {jenisId && isSekali && !tarifTidakAda && pembayaranSekali && (
-                  <div className="rounded-lg border p-4 space-y-2">
-                    <Label>Status Pembayaran</Label>
-                    {pembayaranSekali.lunas ? (
-                      <div className="flex items-center gap-2 text-emerald-600">
-                        <Check className="h-4 w-4" />
-                        <span className="font-medium">Sudah Lunas — {formatRupiah(pembayaranSekali.totalBayar)}</span>
-                      </div>
-                    ) : (
-                      <div className="text-sm space-y-1">
-                        <p>Nominal: <span className="font-medium">{formatRupiah(effectiveTarif)}</span></p>
-                        {pembayaranSekali.totalBayar > 0 && (
-                          <p>Sudah dibayar: <span className="font-medium">{formatRupiah(pembayaranSekali.totalBayar)}</span></p>
+            {/* Month grid for bulanan */}
+            {jenisId && !isSekali && !tarifTidakAda && bulanDibayar && (
+              <div className="space-y-2">
+                <Label className="text-xs">Status Per Bulan</Label>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const m = i + 1;
+                    const sudah = bulanDibayar.has(m);
+                    const isSelected = bulan === String(m);
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        disabled={sudah}
+                        onClick={() => !sudah && setBulan(String(m))}
+                        className={cn(
+                          "flex flex-col items-center gap-0.5 rounded-md border px-1.5 py-1.5 text-[11px] font-medium transition-all",
+                          sudah
+                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 cursor-default"
+                            : isSelected
+                              ? "bg-primary/10 border-primary ring-2 ring-primary/50 text-primary cursor-pointer"
+                              : "bg-destructive/5 border-destructive/30 text-destructive hover:bg-destructive/10 cursor-pointer"
                         )}
-                        <p className="text-destructive font-medium">
-                          Sisa: {formatRupiah(effectiveTarif - pembayaranSekali.totalBayar)}
-                        </p>
-                      </div>
+                      >
+                        {sudah && <Check className="h-3 w-3" />}
+                        <span>{namaBulan(m).slice(0, 3)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Lunas: <span className="font-medium text-emerald-600">{sudahBayar}</span>
+                  {" · "}
+                  Belum: <span className="font-medium text-destructive">{belumBayar}</span>
+                </p>
+              </div>
+            )}
+
+            {/* Sekali bayar status */}
+            {jenisId && isSekali && !tarifTidakAda && pembayaranSekali && (
+              <div className="rounded-md border p-3 text-sm">
+                {pembayaranSekali.lunas ? (
+                  <div className="flex items-center gap-2 text-emerald-600">
+                    <Check className="h-4 w-4" />
+                    <span className="font-medium">Lunas — {formatRupiah(pembayaranSekali.totalBayar)}</span>
+                  </div>
+                ) : (
+                  <div className="space-y-0.5 text-xs">
+                    <p>Nominal: <span className="font-medium">{formatRupiah(effectiveTarif)}</span></p>
+                    {pembayaranSekali.totalBayar > 0 && (
+                      <p>Dibayar: <span className="font-medium">{formatRupiah(pembayaranSekali.totalBayar)}</span></p>
                     )}
+                    <p className="text-destructive font-medium">Sisa: {formatRupiah(effectiveTarif - pembayaranSekali.totalBayar)}</p>
                   </div>
                 )}
+              </div>
+            )}
 
-                <div className="grid grid-cols-2 gap-4">
-                  {!isSekali && !(jenisId && bulanDibayar) && (
-                    <div>
-                      <Label>Bulan</Label>
-                      <Select value={bulan} onValueChange={setBulan}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 12 }, (_, i) => (
-                            <SelectItem key={i + 1} value={String(i + 1)}>{namaBulan(i + 1)}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <div className={(isSekali || (jenisId && bulanDibayar)) ? "col-span-2" : ""}>
-                    <Label>Jumlah (Rp)</Label>
-                    <Input type="number" value={jumlah} onChange={(e) => !isJumlahLocked && setJumlah(e.target.value)} placeholder="0" disabled={isJumlahLocked} className={isJumlahLocked ? "bg-muted" : ""} />
-                    {isJumlahLocked && <p className="text-xs text-muted-foreground mt-1">🔒 Nominal sesuai tarif, tidak dapat diubah</p>}
-                  </div>
-                </div>
-                <div>
-                  <Label>Tanggal Bayar</Label>
-                  <Input type="date" value={tanggalBayar} onChange={(e) => setTanggalBayar(e.target.value)} />
-                </div>
-                <div>
-                  <Label>Keterangan</Label>
-                  <Textarea value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder="Opsional" />
-                </div>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!jenisId || !jumlah || !!tarifTidakAda || createMutation.isPending || (isSekali && pembayaranSekali?.lunas)}
-                  className="w-full"
-                >
-                  {createMutation.isPending ? "Menyimpan..." : "Simpan & Cetak Kuitansi"}
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Row 2: Tanggal + Nominal inline */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Tanggal Bayar</Label>
+                <Input type="date" className="h-9" value={tanggalBayar} onChange={(e) => setTanggalBayar(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Jumlah (Rp)</Label>
+                <Input type="number" className={cn("h-9", isJumlahLocked && "bg-muted")} value={jumlah} onChange={(e) => !isJumlahLocked && setJumlah(e.target.value)} placeholder="0" disabled={isJumlahLocked} />
+                {isJumlahLocked && <p className="text-[11px] text-muted-foreground">🔒 Sesuai tarif</p>}
+              </div>
+            </div>
 
-            {/* Riwayat */}
-            <Card>
-              <CardHeader><CardTitle>Riwayat Pembayaran</CardTitle></CardHeader>
-              <CardContent>
-                <DataTable
-                  columns={riwayatColumns}
-                  data={(riwayat as any[]) || []}
-                  loading={loadRiwayat}
-                  searchable={false}
-                  pageSize={10}
-                  emptyMessage="Belum ada riwayat pembayaran"
-                />
-              </CardContent>
-            </Card>
+            {/* Keterangan */}
+            <div className="space-y-1">
+              <Label className="text-xs">Keterangan</Label>
+              <Textarea value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder="Opsional" rows={2} />
+            </div>
+
+            <Button
+              onClick={handleSubmit}
+              disabled={!jenisId || !jumlah || !!tarifTidakAda || createMutation.isPending || (isSekali && pembayaranSekali?.lunas)}
+              className="w-full"
+            >
+              {createMutation.isPending ? "Menyimpan..." : "Simpan & Cetak Kuitansi"}
+            </Button>
           </div>
-        </>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
+          Ketik NIS atau nama di bar pencarian untuk memulai
+        </div>
       )}
 
       {/* Kuitansi Dialog */}
@@ -573,7 +585,6 @@ export default function InputPembayaran() {
         </DialogContent>
       </Dialog>
 
-      {/* Hidden print layout */}
       {lastPayment && (
         <PrintKuitansi
           payment={lastPayment}

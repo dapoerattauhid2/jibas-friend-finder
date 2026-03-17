@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
+import { FilterToolbar, ActiveFilter } from "@/components/shared/FilterToolbar";
 import { useLembaga, useJenisPembayaran, formatRupiah, namaBulan } from "@/hooks/useKeuangan";
 import { getTarifBatch } from "@/hooks/useTarifTagihan";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,26 +64,17 @@ export default function LaporanBayarKelas() {
 
         if (tipe === "sekali") {
           return {
-            id: siswa.id,
-            nama: siswa.nama,
-            nis: siswa.nis || "-",
-            nominal,
-            totalBayar,
-            lunas: totalBayar >= nominal,
-            sisa: Math.max(nominal - totalBayar, 0),
+            id: siswa.id, nama: siswa.nama, nis: siswa.nis || "-", nominal, totalBayar,
+            lunas: totalBayar >= nominal, sisa: Math.max(nominal - totalBayar, 0),
           };
         } else {
           const bulanBayar: Record<number, number> = {};
           siswaPayments.forEach((p: any) => { bulanBayar[p.bulan] = (bulanBayar[p.bulan] || 0) + Number(p.jumlah || 0); });
           const bulanLunas = Object.keys(bulanBayar).length;
           return {
-            id: siswa.id,
-            nama: siswa.nama,
-            nis: siswa.nis || "-",
-            nominal,
+            id: siswa.id, nama: siswa.nama, nis: siswa.nis || "-", nominal,
             ...Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`b${i + 1}`, bulanBayar[i + 1] || 0])),
-            totalBayar,
-            bulanLunas,
+            totalBayar, bulanLunas,
           };
         }
       }).filter(Boolean).sort((a: any, b: any) => a.nama.localeCompare(b.nama));
@@ -117,12 +109,28 @@ export default function LaporanBayarKelas() {
   ];
 
   const columns = isSekali ? columnsSekali : columnsBulanan;
-  const kelasNama = kelasList?.find((k: any) => k.id === kelasId)?.nama || "";
-  const jenisNama = jenisList?.find((j: any) => j.id === jenisId)?.nama || "";
+  const kelasNamaStr = kelasList?.find((k: any) => k.id === kelasId)?.nama || "";
+  const jenisNamaStr = jenisList?.find((j: any) => j.id === jenisId)?.nama || "";
+  const lembagaNama = lembagaList?.find((l: any) => l.id === departemenId);
+
+  const activeFilters: ActiveFilter[] = [
+    ...(departemenId ? [{
+      key: "lembaga", label: "Lembaga", value: lembagaNama?.kode || lembagaNama?.nama || "",
+      onClear: () => { setDepartemenId(""); setKelasId(""); setJenisId(""); },
+    }] : []),
+    ...(kelasId ? [{
+      key: "kelas", label: "Kelas", value: kelasNamaStr,
+      onClear: () => setKelasId(""),
+    }] : []),
+    ...(jenisId ? [{
+      key: "jenis", label: "Jenis", value: jenisNamaStr,
+      onClear: () => setJenisId(""),
+    }] : []),
+  ];
 
   return (
     <div className="space-y-0 animate-fade-in">
-      {/* Header + count badge inline */}
+      {/* Header */}
       <div className="flex items-center justify-between gap-4 mb-3">
         <div>
           <h1 className="text-xl font-bold text-foreground">Laporan Pembayaran Per Kelas</h1>
@@ -131,55 +139,59 @@ export default function LaporanBayarKelas() {
         {kelasId && jenisId && reportData && (
           <Badge variant="secondary" className="gap-1.5 py-1 px-2.5 text-xs font-medium">
             <Users className="h-3 w-3" />
-            {reportData.length} siswa — {kelasNama} — {jenisNama}
+            {reportData.length} siswa
           </Badge>
         )}
       </div>
 
-      {/* Filter toolbar — no Card */}
-      <div className="flex gap-3 items-end flex-wrap border-b border-border pb-3 mb-4">
-        <div className="space-y-1">
-          <Label className="text-xs">Lembaga</Label>
-          <Select value={departemenId} onValueChange={(v) => { setDepartemenId(v); setKelasId(""); setJenisId(""); }}>
-            <SelectTrigger className="w-44 h-8 text-xs"><SelectValue placeholder="Pilih lembaga" /></SelectTrigger>
-            <SelectContent>
-              {lembagaList?.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Kelas</Label>
-          <Select value={kelasId} onValueChange={setKelasId} disabled={!departemenId}>
-            <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
-            <SelectContent>
-              {kelasList?.map((k: any) => <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Jenis Pembayaran</Label>
-          <Select value={jenisId} onValueChange={setJenisId} disabled={!departemenId}>
-            <SelectTrigger className="w-48 h-8 text-xs"><SelectValue placeholder="Pilih jenis" /></SelectTrigger>
-            <SelectContent>
-              {jenisList?.map((j: any) => <SelectItem key={j.id} value={j.id}>{j.nama}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Filter toolbar */}
+      <div className="border-b border-border pb-3 mb-4">
+        <FilterToolbar activeFilters={activeFilters}>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Lembaga</Label>
+              <Select value={departemenId} onValueChange={(v) => { setDepartemenId(v); setKelasId(""); setJenisId(""); }}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Pilih lembaga" /></SelectTrigger>
+                <SelectContent>
+                  {lembagaList?.map((l: any) => <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Kelas</Label>
+              <Select value={kelasId} onValueChange={setKelasId} disabled={!departemenId}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
+                <SelectContent>
+                  {kelasList?.map((k: any) => <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Jenis Pembayaran</Label>
+              <Select value={jenisId} onValueChange={setJenisId} disabled={!departemenId}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Pilih jenis" /></SelectTrigger>
+                <SelectContent>
+                  {jenisList?.map((j: any) => <SelectItem key={j.id} value={j.id}>{j.nama}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </FilterToolbar>
       </div>
 
-      {/* Table — no Card */}
+      {/* Table */}
       {kelasId && jenisId ? (
         isLoading ? <Skeleton className="h-40" /> : (
           <DataTable
             columns={columns}
             data={reportData || []}
             exportable
-            exportFilename={`laporan-kelas-${kelasNama}-${jenisNama}`}
+            exportFilename={`laporan-kelas-${kelasNamaStr}-${jenisNamaStr}`}
             pageSize={50}
           />
         )
       ) : (
-        <p className="text-sm text-muted-foreground text-center py-12">Pilih lembaga, kelas, dan jenis pembayaran</p>
+        <p className="text-sm text-muted-foreground text-center py-12">Gunakan tombol Filter untuk memilih lembaga, kelas, dan jenis</p>
       )}
     </div>
   );

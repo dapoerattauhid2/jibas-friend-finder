@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { FilterToolbar, ActiveFilter } from "@/components/shared/FilterToolbar";
 import { Badge } from "@/components/ui/badge";
 import { useJurnalList, useJurnalDetail, useCreateJurnal, useUpdateJurnal, useDeleteJurnal, usePostJurnal, useAkunRekening } from "@/hooks/useJurnal";
 import { formatRupiah, BULAN_NAMES, useLembaga } from "@/hooks/useKeuangan";
@@ -44,7 +45,6 @@ export default function JurnalUmum() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [postId, setPostId] = useState<string | null>(null);
 
-  // Form state
   const [tanggal, setTanggal] = useState(format(new Date(), "yyyy-MM-dd"));
   const [keterangan, setKeterangan] = useState("");
   const [referensi, setReferensi] = useState("");
@@ -82,7 +82,6 @@ export default function JurnalUmum() {
     setFormOpen(true);
   };
 
-  // Sync edit details when viewData loads
   useMemo(() => {
     if (editId && viewData?.details) {
       setDetails(
@@ -119,6 +118,19 @@ export default function JurnalUmum() {
     (next[i] as any)[field] = value;
     setDetails(next);
   };
+
+  const lembagaNama = lembagaList?.find((l: any) => l.id === departemenId);
+
+  const activeFilters: ActiveFilter[] = [
+    ...(departemenId ? [{
+      key: "lembaga", label: "Lembaga", value: lembagaNama?.kode || lembagaNama?.nama || "",
+      onClear: () => setDepartemenId(""),
+    }] : []),
+    {
+      key: "periode", label: "Periode", value: `${BULAN_NAMES[bulan - 1]} ${tahun}`,
+      onClear: () => { setBulan(currentMonth); setTahun(currentYear); },
+    },
+  ];
 
   const columns: DataTableColumn<any>[] = [
     { key: "nomor", label: "Nomor", sortable: true },
@@ -166,52 +178,57 @@ export default function JurnalUmum() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Jurnal Umum</h1>
-        <p className="text-sm text-muted-foreground">Catat transaksi keuangan dalam jurnal umum</p>
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-3 items-end flex-wrap">
+    <div className="space-y-0 animate-fade-in">
+      <div className="flex items-center justify-between gap-4 mb-3">
         <div>
-          <Label>Lembaga</Label>
-          <Select value={departemenId || "__all__"} onValueChange={(v) => setDepartemenId(v === "__all__" ? "" : v)}>
-            <SelectTrigger className="w-44"><SelectValue placeholder="Semua lembaga" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Semua Lembaga</SelectItem>
-              {lembagaList?.map((l: any) => (
-                <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>Bulan</Label>
-          <Select value={String(bulan)} onValueChange={v => setBulan(Number(v))}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {BULAN_NAMES.map((n, i) => <SelectItem key={i} value={String(i + 1)}>{n}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>Tahun</Label>
-          <Input type="number" className="w-28" value={tahun} onChange={e => setTahun(Number(e.target.value))} />
+          <h1 className="text-xl font-bold text-foreground">Jurnal Umum</h1>
+          <p className="text-xs text-muted-foreground">Catat transaksi keuangan dalam jurnal umum</p>
         </div>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <DataTable
-            columns={columns}
-            data={jurnalList || []}
-            loading={isLoading}
-            pageSize={20}
-            actions={<Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Buat Jurnal Baru</Button>}
-          />
-        </CardContent>
-      </Card>
+      {/* Filter toolbar */}
+      <div className="border-b border-border pb-3 mb-4">
+        <FilterToolbar
+          activeFilters={activeFilters}
+          actions={<Button size="sm" className="h-8 text-xs" onClick={openCreate}><Plus className="h-3.5 w-3.5 mr-1.5" />Buat Jurnal</Button>}
+        >
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Lembaga</Label>
+              <Select value={departemenId || "__all__"} onValueChange={(v) => setDepartemenId(v === "__all__" ? "" : v)}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Semua lembaga" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Semua Lembaga</SelectItem>
+                  {lembagaList?.map((l: any) => (
+                    <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Bulan</Label>
+              <Select value={String(bulan)} onValueChange={v => setBulan(Number(v))}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {BULAN_NAMES.map((n, i) => <SelectItem key={i} value={String(i + 1)}>{n}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tahun</Label>
+              <Input type="number" className="h-8 text-xs" value={tahun} onChange={e => setTahun(Number(e.target.value))} />
+            </div>
+          </div>
+        </FilterToolbar>
+      </div>
+
+      {/* Table — no Card wrapper */}
+      <DataTable
+        columns={columns}
+        data={jurnalList || []}
+        loading={isLoading}
+        pageSize={20}
+      />
 
       {/* Form Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -236,7 +253,6 @@ export default function JurnalUmum() {
               </div>
             </div>
 
-            {/* Detail rows */}
             <div className="border rounded-md overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
