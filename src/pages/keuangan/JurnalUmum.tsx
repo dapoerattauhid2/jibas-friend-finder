@@ -210,7 +210,7 @@ export default function JurnalUmum() {
               <Select value={String(bulan)} onValueChange={v => setBulan(Number(v))}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {BULAN_NAMES.map((n, i) => <SelectItem key={i} value={String(i + 1)}>{n}</SelectItem>)}
+                  {BULAN_ORDER_AKADEMIK.map((m) => <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
