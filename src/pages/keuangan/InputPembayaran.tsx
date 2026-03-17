@@ -38,7 +38,11 @@ export default function InputPembayaran() {
 
   const { data: lembagaList } = useLembaga();
   const { data: tahunAktif } = useTahunAjaranAktif();
+  const { data: tahunAjaranList } = useTahunAjaran();
   const { data: allJenisList } = useJenisPembayaran(departemenId || undefined);
+
+  // State for tahun ajaran selection (default: active)
+  const [selectedTahunAjaranId, setSelectedTahunAjaranId] = useState("");
   const { data: riwayat, isLoading: loadRiwayat } = usePembayaranBySiswa(selectedSiswa?.id);
 
   const siswaKelasId = selectedSiswa?.kelas_siswa?.[0]?.kelas?.id;
