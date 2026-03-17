@@ -42,7 +42,7 @@ export default function TabNeracaAkuntansi({ departemenId }: { departemenId?: st
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["neraca_akuntansi", tanggalStr],
+    queryKey: ["neraca_akuntansi", tanggalStr, departemenId],
     enabled: !!akunList,
     queryFn: async () => {
       // Fetch all jurnal_detail with pagination to avoid 1000-row limit
@@ -50,12 +50,19 @@ export default function TabNeracaAkuntansi({ departemenId }: { departemenId?: st
       let from = 0;
       const batchSize = 5000;
       while (true) {
-        const { data: details, error } = await supabase
+        let q = supabase
           .from("jurnal_detail")
-          .select("debit, kredit, akun_id, jurnal:jurnal_id!inner(tanggal, status)")
+          .select("debit, kredit, akun_id, jurnal:jurnal_id!inner(tanggal, status, departemen_id)")
           .eq("jurnal.status", "posted")
-          .lte("jurnal.tanggal", tanggalStr)
-          .range(from, from + batchSize - 1);
+          .lte("jurnal.tanggal", tanggalStr);
+        if (departemenId) q = q.eq("jurnal.departemen_id", departemenId);
+        const { data: details, error } = await q.range(from, from + batchSize - 1);
+        if (error) throw error;
+        if (!details || details.length === 0) break;
+        allDetails = allDetails.concat(details);
+        if (details.length < batchSize) break;
+        from += batchSize;
+      }
         if (error) throw error;
         if (!details || details.length === 0) break;
         allDetails = allDetails.concat(details);
