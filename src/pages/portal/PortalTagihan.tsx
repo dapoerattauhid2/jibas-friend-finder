@@ -83,12 +83,13 @@ export default function PortalTagihan() {
       
       const items = (data || []) as TagihanItem[];
       
-      // Get unique jenis_ids and apply per-student tarif
-      const jenisIds = [...new Set(items.map(t => t.jenis_id))];
-      for (const jId of jenisIds) {
-        const relevantItems = items.filter(t => t.jenis_id === jId);
+      // Get unique jenis_id+tahun_ajaran_id combos and apply per-student tarif
+      const combos = [...new Set(items.map(t => `${t.jenis_id}|${t.tahun_ajaran_id}`))];
+      for (const combo of combos) {
+        const [jId, taId] = combo.split("|");
+        const relevantItems = items.filter(t => t.jenis_id === jId && t.tahun_ajaran_id === taId);
         const siswaIds = [...new Set(relevantItems.map(t => t.siswa_id))];
-        const tarifMap = await getTarifBatch(jId, siswaIds);
+        const tarifMap = await getTarifBatch(jId, siswaIds, undefined, taId);
         relevantItems.forEach(t => {
           const tarif = tarifMap.get(t.siswa_id);
           if (tarif != null) t.nominal = tarif;
