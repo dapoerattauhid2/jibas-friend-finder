@@ -54,7 +54,7 @@ export default function InputPembayaran() {
       const kelasId = selectedSiswa?.kelas_siswa?.[0]?.kelas?.id || null;
       let q = supabase
         .from("tarif_tagihan")
-        .select("jenis_id")
+        .select("jenis_id, siswa_id, kelas_id, tahun_ajaran_id")
         .eq("aktif", true);
 
       // We need entries where:
