@@ -371,7 +371,7 @@ export default function InputPembayaran() {
                 </div>
 
                 {/* Grid 12 bulan - hanya untuk tipe bulanan */}
-                {jenisId && !isSekali && bulanDibayar && (
+                {jenisId && !isSekali && !tarifTidakAda && bulanDibayar && (
                   <div className="space-y-3">
                     <Label>Status Pembayaran Per Bulan</Label>
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
