@@ -133,6 +133,20 @@ export function useJurnalDetail(jurnalId?: string) {
   });
 }
 
+// ─── Period Lock Check ───
+async function checkPeriodeLocked(tanggal: string): Promise<void> {
+  const { data } = await supabase
+    .from("tahun_ajaran")
+    .select("id, nama")
+    .eq("ditutup" as any, true)
+    .lte("tanggal_mulai", tanggal)
+    .gte("tanggal_selesai", tanggal)
+    .limit(1);
+  if (data && data.length > 0) {
+    throw new Error(`Transaksi ditolak: periode "${(data[0] as any).nama}" sudah ditutup buku.`);
+  }
+}
+
 async function generateNomorJurnal(tahun: number): Promise<string> {
   const { data, error } = await supabase.rpc("generate_nomor_jurnal", {
     p_prefix: "JU",
