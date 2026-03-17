@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FilterToolbar, ActiveFilter } from "@/components/shared/FilterToolbar";
-import { useJenisPembayaran, useLembaga, formatRupiah, namaBulan } from "@/hooks/useKeuangan";
+import { useJenisPembayaran, useLembaga, useTahunAjaranAktif, useTahunAjaran, formatRupiah, namaBulan } from "@/hooks/useKeuangan";
 import { getTarifBatch } from "@/hooks/useTarifTagihan";
 import { useKelas } from "@/hooks/useAkademikData";
 import { supabase } from "@/integrations/supabase/client";
