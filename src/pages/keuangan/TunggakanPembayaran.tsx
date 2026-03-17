@@ -58,7 +58,8 @@ export default function TunggakanPembayaran() {
       let siswaQuery = supabase
         .from("kelas_siswa")
         .select("siswa_id, kelas_id, siswa:siswa_id(id, nis, nama), kelas:kelas_id(nama, departemen_id)")
-        .eq("aktif", true);
+        .eq("aktif", true)
+        .eq("tahun_ajaran_id", tahunAjaranId);
       if (kelasId) siswaQuery = siswaQuery.eq("kelas_id", kelasId);
       const { data: siswaList } = await siswaQuery;
       if (!siswaList?.length) return [];
