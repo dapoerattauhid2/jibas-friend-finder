@@ -38,8 +38,53 @@ export default function InputPembayaran() {
 
   const { data: lembagaList } = useLembaga();
   const { data: tahunAktif } = useTahunAjaranAktif();
-  const { data: jenisList } = useJenisPembayaran(departemenId || undefined);
+  const { data: allJenisList } = useJenisPembayaran(departemenId || undefined);
   const { data: riwayat, isLoading: loadRiwayat } = usePembayaranBySiswa(selectedSiswa?.id);
+
+  // Get kelas_id of the selected student for tarif lookup
+  const siswaKelasId = selectedSiswa?.kelas_siswa?.[0]?.kelas?.id;
+
+  // Fetch tarif_tagihan entries applicable to the selected student to filter jenis dropdown
+  const { data: applicableTarifJenisIds } = useQuery({
+    queryKey: ["applicable_tarif_jenis", selectedSiswa?.id, siswaKelasId, tahunAktif?.id, departemenId],
+    enabled: !!selectedSiswa && !!departemenId,
+    queryFn: async () => {
+      // Get all active tarif_tagihan that could match this student
+      // Matches: siswa-specific, kelas-specific, or tahun_ajaran-specific
+      const kelasId = selectedSiswa?.kelas_siswa?.[0]?.kelas?.id || null;
+      let q = supabase
+        .from("tarif_tagihan")
+        .select("jenis_id, siswa_id, kelas_id, tahun_ajaran_id")
+        .eq("aktif", true);
+
+      // We need entries where:
+      // siswa_id = this student OR siswa_id IS NULL (class/year level)
+      // AND kelas_id = student's class OR kelas_id IS NULL
+      // AND tahun_ajaran_id = active year OR tahun_ajaran_id IS NULL
+      const { data, error } = await q;
+      if (error) throw error;
+      if (!data) return new Set<string>();
+
+      const validIds = new Set<string>();
+      for (const t of data) {
+        const row = t as any;
+        const matchSiswa = row.siswa_id === selectedSiswa.id || !row.siswa_id;
+        const matchKelas = row.kelas_id === kelasId || !row.kelas_id;
+        const matchTahun = row.tahun_ajaran_id === tahunAktif?.id || !row.tahun_ajaran_id;
+        if (matchSiswa && matchKelas && matchTahun && t.jenis_id) {
+          validIds.add(t.jenis_id);
+        }
+      }
+      return validIds;
+    },
+  });
+
+  // Filter jenis list to only those with configured tarif
+  const jenisList = useMemo(() => {
+    if (!allJenisList) return [];
+    if (!selectedSiswa || !applicableTarifJenisIds) return allJenisList;
+    return allJenisList.filter((j: any) => applicableTarifJenisIds.has(j.id));
+  }, [allJenisList, selectedSiswa, applicableTarifJenisIds]);
   const { data: pengaturanAkun } = usePengaturanAkun();
   const createMutation = useCreatePembayaran();
   const updateTagihanLunas = useUpdateTagihanLunas();
@@ -62,8 +107,7 @@ export default function InputPembayaran() {
   const selectedJenis = jenisList?.find((j: any) => j.id === jenisId);
   const isSekali = selectedJenis?.tipe === "sekali";
 
-  // Get kelas_id of the selected student for tarif lookup
-  const siswaKelasId = selectedSiswa?.kelas_siswa?.[0]?.kelas?.id;
+  // Check if there's an existing tagihan (piutang) for this student+jenis+bulan
   // Check if there's an existing tagihan (piutang) for this student+jenis+bulan
   const tagihanBulanToCheck = isSekali ? undefined : Number(bulan);
   const { data: existingTagihan } = useTagihanBySiswa(selectedSiswa?.id, jenisId || undefined, tagihanBulanToCheck);
