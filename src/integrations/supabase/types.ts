@@ -1588,6 +1588,153 @@ export type Database = {
           },
         ]
       }
+      pendapatan_dimuka: {
+        Row: {
+          bulan: number | null
+          created_at: string
+          departemen_id: string | null
+          id: string
+          jenis_id: string
+          jumlah: number
+          jurnal_pengakuan_id: string | null
+          pembayaran_id: string
+          siswa_id: string
+          status: string
+          tahun_ajaran_pembayaran_id: string
+          tahun_ajaran_target_id: string
+          tanggal_pengakuan: string | null
+        }
+        Insert: {
+          bulan?: number | null
+          created_at?: string
+          departemen_id?: string | null
+          id?: string
+          jenis_id: string
+          jumlah?: number
+          jurnal_pengakuan_id?: string | null
+          pembayaran_id: string
+          siswa_id: string
+          status?: string
+          tahun_ajaran_pembayaran_id: string
+          tahun_ajaran_target_id: string
+          tanggal_pengakuan?: string | null
+        }
+        Update: {
+          bulan?: number | null
+          created_at?: string
+          departemen_id?: string | null
+          id?: string
+          jenis_id?: string
+          jumlah?: number
+          jurnal_pengakuan_id?: string | null
+          pembayaran_id?: string
+          siswa_id?: string
+          status?: string
+          tahun_ajaran_pembayaran_id?: string
+          tahun_ajaran_target_id?: string
+          tanggal_pengakuan?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pendapatan_dimuka_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "departemen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pendapatan_dimuka_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_rekap_keuangan_lembaga"
+            referencedColumns: ["departemen_id"]
+          },
+          {
+            foreignKeyName: "pendapatan_dimuka_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["departemen_id"]
+          },
+          {
+            foreignKeyName: "pendapatan_dimuka_jenis_id_fkey"
+            columns: ["jenis_id"]
+            isOneToOne: false
+            referencedRelation: "jenis_pembayaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pendapatan_dimuka_jenis_id_fkey"
+            columns: ["jenis_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["jenis_id"]
+          },
+          {
+            foreignKeyName: "pendapatan_dimuka_jurnal_pengakuan_id_fkey"
+            columns: ["jurnal_pengakuan_id"]
+            isOneToOne: false
+            referencedRelation: "jurnal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pendapatan_dimuka_pembayaran_id_fkey"
+            columns: ["pembayaran_id"]
+            isOneToOne: false
+            referencedRelation: "pembayaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pendapatan_dimuka_pembayaran_id_fkey"
+            columns: ["pembayaran_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["pembayaran_id"]
+          },
+          {
+            foreignKeyName: "pendapatan_dimuka_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "siswa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pendapatan_dimuka_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["siswa_id"]
+          },
+          {
+            foreignKeyName: "pendapatan_dimuka_tahun_ajaran_pembayaran_id_fkey"
+            columns: ["tahun_ajaran_pembayaran_id"]
+            isOneToOne: false
+            referencedRelation: "tahun_ajaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pendapatan_dimuka_tahun_ajaran_pembayaran_id_fkey"
+            columns: ["tahun_ajaran_pembayaran_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["tahun_ajaran_id"]
+          },
+          {
+            foreignKeyName: "pendapatan_dimuka_tahun_ajaran_target_id_fkey"
+            columns: ["tahun_ajaran_target_id"]
+            isOneToOne: false
+            referencedRelation: "tahun_ajaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pendapatan_dimuka_tahun_ajaran_target_id_fkey"
+            columns: ["tahun_ajaran_target_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["tahun_ajaran_id"]
+          },
+        ]
+      }
       pengaturan_akun: {
         Row: {
           akun_id: string | null
