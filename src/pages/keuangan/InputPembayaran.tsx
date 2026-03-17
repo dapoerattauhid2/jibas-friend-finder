@@ -481,27 +481,14 @@ export default function InputPembayaran() {
           <div className="rounded-lg border p-4 space-y-4">
             <h4 className="text-sm font-semibold">Input Pembayaran</h4>
 
-            {/* Tahun Ajaran selector */}
-            <div className="space-y-1">
-              <Label className="text-xs">Tahun Ajaran Tagihan</Label>
-              <Select value={selectedTahunAjaranId || tahunAktif?.id || ""} onValueChange={setSelectedTahunAjaranId}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Pilih tahun ajaran" /></SelectTrigger>
-                <SelectContent>
-                  {tahunAjaranList?.filter((t: any) => !t.ditutup).map((t: any) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.nama} {t.aktif ? "(Aktif)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {isBayarDimuka && (
-                <div className="rounded-md bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-2 mt-1">
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
-                    ⚡ Pembayaran Di Muka — Akan dicatat sebagai Pendapatan Diterima di Muka (Liabilitas), dan diakui sebagai pendapatan saat tahun ajaran target dimulai.
-                  </p>
-                </div>
-              )}
-            </div>
+            {/* Pembayaran Di Muka alert */}
+            {isBayarDimuka && (
+              <div className="rounded-md bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-2">
+                <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+                  ⚡ Pembayaran Di Muka — Akan dicatat sebagai Pendapatan Diterima di Muka (Liabilitas), dan diakui sebagai pendapatan saat tahun ajaran target dimulai.
+                </p>
+              </div>
+            )}
 
             {/* Row 1: Jenis + Bulan inline */}
             <div className="grid grid-cols-2 gap-3">
