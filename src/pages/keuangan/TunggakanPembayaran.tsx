@@ -307,6 +307,7 @@ export default function TunggakanPembayaran() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
             <div className="space-y-1">
               <Label className="text-xs">Jenis Pembayaran</Label>
               <Select value={jenisId} onValueChange={(v) => { setJenisId(v); setSelectedIds(new Set()); }}>
