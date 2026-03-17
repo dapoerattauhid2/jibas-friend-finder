@@ -109,14 +109,24 @@ export default function TunggakanPembayaran() {
         });
         return result;
       } else {
+        // Build the list of months to check (supports wrap-around e.g. 7→6)
+        const dari = Number(bulanDari);
+        const sampai = Number(bulanSampai);
+        const bulanRange: number[] = [];
+        if (dari <= sampai) {
+          for (let b = dari; b <= sampai; b++) bulanRange.push(b);
+        } else {
+          for (let b = dari; b <= 12; b++) bulanRange.push(b);
+          for (let b = 1; b <= sampai; b++) bulanRange.push(b);
+        }
+
         const { data: payments } = await supabase
           .from("pembayaran")
           .select("siswa_id, bulan")
           .eq("jenis_id", jenisId)
           .eq("tahun_ajaran_id", tahunAjaranId)
           .in("siswa_id", siswaIds)
-          .gte("bulan", Number(bulanDari))
-          .lte("bulan", Number(bulanSampai));
+          .in("bulan", bulanRange);
 
         const paidMap = new Map<string, Set<number>>();
         payments?.forEach((p) => {
@@ -130,7 +140,9 @@ export default function TunggakanPembayaran() {
           if (nominal === 0) return;
           const paid = paidMap.get(ks.siswa_id) || new Set();
           const bulanTunggak: number[] = [];
-          for (let b = Number(bulanDari); b <= Number(bulanSampai); b++) {
+          for (const b of bulanRange) {
+            if (!paid.has(b)) bulanTunggak.push(b);
+          }
             if (!paid.has(b)) bulanTunggak.push(b);
           }
           if (bulanTunggak.length > 0) {
