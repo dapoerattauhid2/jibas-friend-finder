@@ -535,7 +535,6 @@ export default function InputPembayaran() {
                 <div className="grid grid-cols-6 gap-1.5">
                   {BULAN_ORDER_AKADEMIK.map((m) => {
                     const sudah = bulanDibayar.has(m);
-                    const sudah = bulanDibayar.has(m);
                     const isSelected = bulan === String(m);
                     return (
                       <button
