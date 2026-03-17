@@ -57,24 +57,34 @@ export default function LaporanKeuangan() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="penerimaan">Penerimaan</TabsTrigger>
-          <TabsTrigger value="pengeluaran">Pengeluaran</TabsTrigger>
-          <TabsTrigger value="rekap-spp">Rekap SPP</TabsTrigger>
-          <TabsTrigger value="neraca">Neraca Bulanan</TabsTrigger>
-          <TabsTrigger value="laba-rugi">Laba Rugi</TabsTrigger>
-          <TabsTrigger value="neraca-akuntansi">Neraca</TabsTrigger>
-          <TabsTrigger value="arus-kas">Arus Kas</TabsTrigger>
-          <TabsTrigger value="konsolidasi">Konsolidasi Yayasan</TabsTrigger>
-        </TabsList>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Operasional</span>
+            <TabsList>
+              <TabsTrigger value="penerimaan">Penerimaan</TabsTrigger>
+              <TabsTrigger value="pengeluaran">Pengeluaran</TabsTrigger>
+              <TabsTrigger value="rekap-spp">Rekap SPP</TabsTrigger>
+              <TabsTrigger value="ringkasan-kas">Ringkasan Kas</TabsTrigger>
+              <TabsTrigger value="konsolidasi">Konsolidasi</TabsTrigger>
+            </TabsList>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Akuntansi</span>
+            <TabsList>
+              <TabsTrigger value="laba-rugi">Laba Rugi</TabsTrigger>
+              <TabsTrigger value="neraca-akuntansi">Neraca</TabsTrigger>
+              <TabsTrigger value="arus-kas">Arus Kas</TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
-        <TabsContent value="penerimaan"><TabPenerimaan departemenId={filterLembagaId && filterLembagaId !== "all" ? filterLembagaId : undefined} /></TabsContent>
-        <TabsContent value="pengeluaran"><TabPengeluaran departemenId={filterLembagaId && filterLembagaId !== "all" ? filterLembagaId : undefined} /></TabsContent>
+        <TabsContent value="penerimaan"><TabPenerimaan departemenId={deptId} /></TabsContent>
+        <TabsContent value="pengeluaran"><TabPengeluaran departemenId={deptId} /></TabsContent>
         <TabsContent value="rekap-spp"><TabRekapSPP /></TabsContent>
-        <TabsContent value="neraca"><TabNeraca departemenId={filterLembagaId && filterLembagaId !== "all" ? filterLembagaId : undefined} /></TabsContent>
-        <TabsContent value="laba-rugi"><TabLabaRugi /></TabsContent>
-        <TabsContent value="neraca-akuntansi"><TabNeracaAkuntansi /></TabsContent>
-        <TabsContent value="arus-kas"><TabArusKas departemenId={filterLembagaId && filterLembagaId !== "all" ? filterLembagaId : undefined} /></TabsContent>
+        <TabsContent value="ringkasan-kas"><TabNeraca departemenId={deptId} /></TabsContent>
+        <TabsContent value="laba-rugi"><TabLabaRugi departemenId={deptId} /></TabsContent>
+        <TabsContent value="neraca-akuntansi"><TabNeracaAkuntansi departemenId={deptId} /></TabsContent>
+        <TabsContent value="arus-kas"><TabArusKas departemenId={deptId} /></TabsContent>
         <TabsContent value="konsolidasi"><TabKonsolidasi /></TabsContent>
       </Tabs>
     </div>

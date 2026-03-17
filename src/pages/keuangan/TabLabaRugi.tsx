@@ -15,22 +15,38 @@ interface AkunSaldo {
   saldo: number;
 }
 
-export default function TabLabaRugi() {
+async function fetchAllJurnalDetail(tahun: number, departemenId?: string) {
+  const allRows: any[] = [];
+  const batchSize = 5000;
+  let offset = 0;
+  while (true) {
+    let q = supabase
+      .from("jurnal_detail")
+      .select("debit, kredit, jurnal:jurnal_id!inner(tanggal, status, departemen_id), akun:akun_id(kode, nama, jenis, saldo_normal)")
+      .eq("jurnal.status", "posted")
+      .gte("jurnal.tanggal", `${tahun}-01-01`)
+      .lte("jurnal.tanggal", `${tahun}-12-31`);
+    if (departemenId) q = q.eq("jurnal.departemen_id", departemenId);
+    const { data, error } = await q.range(offset, offset + batchSize - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    allRows.push(...data);
+    if (data.length < batchSize) break;
+    offset += batchSize;
+  }
+  return allRows;
+}
+
+export default function TabLabaRugi({ departemenId }: { departemenId?: string }) {
   const [tahun, setTahun] = useState(new Date().getFullYear());
 
   const { data, isLoading } = useQuery({
-    queryKey: ["laporan_laba_rugi", tahun],
+    queryKey: ["laporan_laba_rugi", tahun, departemenId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("jurnal_detail")
-        .select("debit, kredit, jurnal:jurnal_id!inner(tanggal, status), akun:akun_id(kode, nama, jenis, saldo_normal)")
-        .eq("jurnal.status", "posted")
-        .gte("jurnal.tanggal", `${tahun}-01-01`)
-        .lte("jurnal.tanggal", `${tahun}-12-31`);
-      if (error) throw error;
+      const rows = await fetchAllJurnalDetail(tahun, departemenId);
 
       const map = new Map<string, AkunSaldo>();
-      (data as any[])?.forEach((row: any) => {
+      rows.forEach((row: any) => {
         const akun = row.akun;
         if (!akun || (akun.jenis !== "pendapatan" && akun.jenis !== "beban")) return;
         const key = `${akun.kode}-${akun.nama}`;
