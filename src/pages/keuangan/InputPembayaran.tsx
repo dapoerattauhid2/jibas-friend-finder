@@ -409,7 +409,7 @@ export default function InputPembayaran() {
                 )}
 
                 {/* Status sekali bayar */}
-                {jenisId && isSekali && pembayaranSekali && (
+                {jenisId && isSekali && !tarifTidakAda && pembayaranSekali && (
                   <div className="rounded-lg border p-4 space-y-2">
                     <Label>Status Pembayaran</Label>
                     {pembayaranSekali.lunas ? (
