@@ -80,7 +80,7 @@ export default function BukuBesar() {
           <Select value={String(bulanDari)} onValueChange={v => setBulanDari(Number(v))}>
             <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {BULAN_NAMES.map((n, i) => <SelectItem key={i} value={String(i + 1)}>{n}</SelectItem>)}
+              {BULAN_ORDER_AKADEMIK.map((m) => <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
