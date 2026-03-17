@@ -292,29 +292,60 @@ function TabPengeluaran({ departemenId }: { departemenId?: string }) {
   );
 }
 
-function TabRekapSPP() {
+function TabRekapSPP({ departemenId }: { departemenId?: string }) {
   const [kelasId, setKelasId] = useState("");
+  const [filterTA, setFilterTA] = useState("");
+  const [filterJenis, setFilterJenis] = useState("");
   const { data: kelasList } = useKelas();
   const { data: jenisList } = useJenisPembayaran();
-  const jenisId = jenisList?.[0]?.id || "";
+  const { data: tahunAjaranList } = useQuery({
+    queryKey: ["tahun_ajaran_list_spp"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tahun_ajaran").select("id, nama").order("nama", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Filter kelas by departemen
+  const filteredKelas = departemenId
+    ? kelasList?.filter((k: any) => k.departemen_id === departemenId)
+    : kelasList;
+
+  // Filter jenis pembayaran: only bulanan (SPP-type), and by departemen
+  const filteredJenis = jenisList?.filter((j: any) => {
+    if (j.tipe !== "bulanan") return false;
+    if (departemenId && j.departemen_id && j.departemen_id !== departemenId) return false;
+    return true;
+  });
+
+  // Auto-select first jenis if not set
+  const jenisId = filterJenis || filteredJenis?.[0]?.id || "";
 
   const { data, isLoading } = useQuery({
-    queryKey: ["rekap_spp_kelas", kelasId, jenisId],
+    queryKey: ["rekap_spp_kelas", kelasId, jenisId, filterTA, departemenId],
     enabled: !!kelasId && !!jenisId,
     queryFn: async () => {
-      const { data: siswaList } = await supabase
+      let kelasQuery = supabase
         .from("kelas_siswa")
         .select("siswa_id, siswa:siswa_id(nama, nis)")
         .eq("kelas_id", kelasId)
         .eq("aktif", true);
+      if (filterTA) kelasQuery = kelasQuery.eq("tahun_ajaran_id", filterTA);
+
+      const { data: siswaList } = await kelasQuery;
       if (!siswaList?.length) return [];
 
       const siswaIds = siswaList.map((s: any) => s.siswa_id);
-      const { data: payments } = await supabase
+      let payQuery = supabase
         .from("pembayaran")
         .select("siswa_id, bulan")
         .eq("jenis_id", jenisId)
         .in("siswa_id", siswaIds);
+      if (filterTA) payQuery = payQuery.eq("tahun_ajaran_id", filterTA);
+      if (departemenId) payQuery = payQuery.eq("departemen_id", departemenId);
+
+      const { data: payments } = await payQuery;
 
       const paidMap = new Map<string, Set<number>>();
       payments?.forEach((p) => {
@@ -347,25 +378,47 @@ function TabRekapSPP() {
 
   return (
     <div className="space-y-4 pt-4">
-      <div className="flex gap-3 items-end">
+      <div className="flex gap-3 items-end flex-wrap">
+        <div>
+          <Label>Tahun Ajaran</Label>
+          <Select value={filterTA} onValueChange={(v) => { setFilterTA(v); setKelasId(""); }}>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Pilih TA" /></SelectTrigger>
+            <SelectContent>
+              {tahunAjaranList?.map((ta: any) => (
+                <SelectItem key={ta.id} value={ta.id}>{ta.nama}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Jenis Pembayaran</Label>
+          <Select value={jenisId} onValueChange={setFilterJenis}>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Pilih jenis" /></SelectTrigger>
+            <SelectContent>
+              {filteredJenis?.map((j: any) => (
+                <SelectItem key={j.id} value={j.id}>{j.nama}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div>
           <Label>Kelas</Label>
           <Select value={kelasId} onValueChange={setKelasId}>
             <SelectTrigger className="w-48"><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
             <SelectContent>
-              {kelasList?.map((k: any) => <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>)}
+              {filteredKelas?.map((k: any) => <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       </div>
-      {kelasId ? (
+      {kelasId && jenisId ? (
         <Card>
           <CardContent className="pt-6">
             <DataTable columns={sppColumns} data={data || []} loading={isLoading} exportable exportFilename="rekap-spp" pageSize={50} searchable={false} />
           </CardContent>
         </Card>
       ) : (
-        <p className="text-sm text-muted-foreground text-center py-8">Pilih kelas untuk melihat rekap SPP</p>
+        <p className="text-sm text-muted-foreground text-center py-8">Pilih tahun ajaran, jenis pembayaran, dan kelas untuk melihat rekap SPP</p>
       )}
     </div>
   );
