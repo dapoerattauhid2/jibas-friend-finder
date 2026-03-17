@@ -130,6 +130,8 @@ export function useCreatePembayaran() {
       keterangan?: string;
       departemen_id?: string;
     }) => {
+      // Check period lock
+      await checkPeriodeLocked(values.tanggal_bayar);
       const { data, error } = await supabase
         .from("pembayaran")
         .insert(values)
