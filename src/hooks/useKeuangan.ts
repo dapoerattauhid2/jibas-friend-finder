@@ -179,6 +179,8 @@ export function useCreatePengeluaran() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (values: { jenis_id: string; jumlah: number; tanggal: string; keterangan?: string; departemen_id?: string }) => {
+      // Check period lock
+      await checkPeriodeLocked(values.tanggal);
       const { data, error } = await supabase
         .from("pengeluaran")
         .insert(values)
