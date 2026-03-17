@@ -345,8 +345,8 @@ export default function TunggakanPembayaran() {
                   <Select value={bulanSampai} onValueChange={setBulanSampai}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <SelectItem key={i + 1} value={String(i + 1)}>{namaBulan(i + 1)}</SelectItem>
+                      {BULAN_ORDER_AKADEMIK.map((m) => (
+                        <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
