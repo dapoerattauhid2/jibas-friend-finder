@@ -221,6 +221,9 @@ export function useUpdateJurnal() {
       const totalKredit = values.details.reduce((s, d) => s + d.kredit, 0);
       if (Math.abs(totalDebit - totalKredit) > 0.01) throw new Error("Total debit harus sama dengan total kredit");
 
+      // Check period lock
+      await checkPeriodeLocked(values.tanggal);
+
       const { data: existing } = await supabase.from("jurnal").select("status").eq("id", values.id).single();
       if ((existing as any)?.status === "posted") throw new Error("Jurnal yang sudah diposting tidak bisa diedit");
 
