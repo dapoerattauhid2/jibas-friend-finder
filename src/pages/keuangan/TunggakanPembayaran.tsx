@@ -52,8 +52,8 @@ export default function TunggakanPembayaran() {
   const isSekaliBayar = (selectedJenis as any)?.tipe === "sekali";
 
   const { data: tunggakanData, isLoading } = useQuery({
-    queryKey: ["tunggakan", departemenId, kelasId, jenisId, bulanDari, bulanSampai],
-    enabled: !!jenisId,
+    queryKey: ["tunggakan", departemenId, kelasId, jenisId, bulanDari, bulanSampai, tahunAjaranId],
+    enabled: !!jenisId && !!tahunAjaranId,
     queryFn: async () => {
       let siswaQuery = supabase
         .from("kelas_siswa")
