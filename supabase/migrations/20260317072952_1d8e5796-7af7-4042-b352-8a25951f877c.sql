@@ -1,0 +1,1 @@
+ALTER TABLE public.siswa ADD COLUMN IF NOT EXISTS departemen_id uuid REFERENCES public.departemen(id);

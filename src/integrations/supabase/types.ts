@@ -2857,6 +2857,7 @@ export type Database = {
           alamat: string | null
           angkatan_id: string | null
           created_at: string | null
+          departemen_id: string | null
           email: string | null
           foto_url: string | null
           id: string
@@ -2873,6 +2874,7 @@ export type Database = {
           alamat?: string | null
           angkatan_id?: string | null
           created_at?: string | null
+          departemen_id?: string | null
           email?: string | null
           foto_url?: string | null
           id?: string
@@ -2889,6 +2891,7 @@ export type Database = {
           alamat?: string | null
           angkatan_id?: string | null
           created_at?: string | null
+          departemen_id?: string | null
           email?: string | null
           foto_url?: string | null
           id?: string
@@ -2907,6 +2910,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "angkatan"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siswa_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "departemen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siswa_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_rekap_keuangan_lembaga"
+            referencedColumns: ["departemen_id"]
+          },
+          {
+            foreignKeyName: "siswa_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["departemen_id"]
           },
         ]
       }
