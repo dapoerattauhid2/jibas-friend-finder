@@ -1,38 +1,36 @@
 
 
-## Analisis Neraca dan Pendapatan Diterima di Muka
+## Perbaikan Proses Tutup Buku
 
-### Jawaban: Apakah Pembayaran Beda Tahun Ajaran Bermasalah?
+### Masalah Saat Ini
+1. **Tidak ada pencatatan Laba/Rugi ke Ekuitas** — Selisih pendapatan dan beban (laba/rugi) tidak dipindahkan ke akun "Laba Ditahan" di Ekuitas
+2. **Tidak ada penguncian periode** — Setelah tutup buku, transaksi masih bisa diinput ke periode lama
+3. **Tidak ada audit trail** — Tidak tercatat siapa yang melakukan tutup buku dan kapan
 
-**Tidak bermasalah** dari sisi akuntansi, karena alur jurnal sudah benar:
-- Saat bayar di muka: Debit Kas, Kredit "Pendapatan Diterima di Muka" (liabilitas) — neraca tetap seimbang
-- Saat diakui (pengakuan pendapatan): Debit "Pendapatan Diterima di Muka", Kredit Pendapatan — liabilitas berkurang, pendapatan bertambah
+### Rencana Perbaikan
 
-Neraca memang seharusnya **tidak filter per tahun ajaran** — neraca menghitung saldo kumulatif semua jurnal sampai tanggal tertentu. Ini sudah benar.
+#### 1. Database Migration
+- Tambah kolom `ditutup` (boolean, default false) pada tabel `tahun_ajaran` untuk menandai periode yang sudah ditutup buku (berbeda dari `aktif`)
+- Tambah tabel `log_tutup_buku` untuk audit trail:
+  - `id`, `tahun_ajaran_id`, `user_id`, `tanggal_proses`, `total_laba_rugi`, `jurnal_id`, `keterangan`
+- Tambah setting `AKUN_LABA_DITAHAN` di tabel `pengaturan_akun` agar user bisa mapping akun Ekuitas untuk menampung laba/rugi
 
-### Masalah yang Perlu Diperbaiki
+#### 2. Perbaikan Logika Tutup Buku (`TutupBuku.tsx`)
+- Sebelum proses, cek apakah akun "Laba Ditahan" sudah dikonfigurasi di `pengaturan_akun`
+- Pada jurnal penutup, tambahkan baris untuk memindahkan selisih laba/rugi ke akun Laba Ditahan:
+  - Laba (positif): Kredit akun Laba Ditahan
+  - Rugi (negatif): Debit akun Laba Ditahan
+- Set `ditutup = true` pada tahun ajaran yang ditutup
+- Insert record ke `log_tutup_buku`
+- Tampilkan ringkasan Laba/Rugi di preview sebelum tutup buku
 
-#### 1. Laba/Rugi Berjalan Tidak Muncul di Ekuitas (KRITIS)
-Neraca saat ini hanya menampilkan akun berjenis `aset`, `liabilitas`, `ekuitas`. Tapi **laba/rugi berjalan** (selisih pendapatan - beban) **tidak ditambahkan ke ekuitas**. Akibatnya neraca hampir pasti **tidak seimbang** karena sisi Aset bertambah dari kas masuk tapi sisi Ekuitas tidak mencerminkan laba.
+#### 3. Penguncian Periode
+- Pada hook `useCreateJurnal` dan `useUpdateJurnal` di `useJurnal.ts`, tambahkan validasi: jika tanggal jurnal jatuh dalam periode tahun ajaran yang `ditutup = true`, tolak transaksi
+- Pada `InputPembayaran` dan `InputPengeluaran`, tambahkan validasi serupa
 
-Perbaikan: Hitung total pendapatan - beban dari jurnal di periode berjalan, tampilkan sebagai baris "Laba (Rugi) Berjalan" di bawah Ekuitas.
-
-#### 2. Batas 1000 Baris Query Supabase
-Query `jurnal_detail` tanpa limit bisa terpotong di 1000 baris untuk sekolah dengan transaksi banyak, menyebabkan saldo tidak akurat.
-
-Perbaikan: Tambahkan pagination atau gunakan `.limit(10000)` untuk memastikan semua data terbaca.
-
-#### 3. Akun Saldo Nol Tetap Ditampilkan
-Akun dengan saldo 0 tetap muncul, membuat laporan panjang.
-
-Perbaikan: Filter akun dengan saldo = 0 agar tidak ditampilkan (opsional, bisa toggle).
-
-### Rencana Implementasi
-
-**File: `src/pages/keuangan/TabNeracaAkuntansi.tsx`**
-
-1. Tambahkan perhitungan **Laba/Rugi Berjalan**: query akun pendapatan dan beban, hitung selisihnya, tampilkan sebagai baris tambahan di bagian Ekuitas sebelum "Total Ekuitas"
-2. Tambahkan `.limit(5000)` pada query jurnal_detail untuk menghindari pemotongan data
-3. Sembunyikan akun dengan saldo 0 (dengan opsi toggle "Tampilkan semua akun")
-4. Perbarui total Ekuitas agar menyertakan Laba/Rugi Berjalan
+#### 4. UI Tambahan di Halaman Tutup Buku
+- Tampilkan card ringkasan: Total Pendapatan, Total Beban, Laba/Rugi Bersih
+- Tampilkan warning jika akun Laba Ditahan belum dikonfigurasi
+- Tampilkan riwayat tutup buku dari tabel `log_tutup_buku`
+- Filter dropdown tahun buku: tandai yang sudah ditutup agar tidak bisa ditutup ulang
 

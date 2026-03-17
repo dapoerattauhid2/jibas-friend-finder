@@ -7,6 +7,7 @@ import { ExportButton } from "@/components/shared/ExportButton";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -24,6 +25,7 @@ interface AkunNeraca {
 
 export default function TabNeracaAkuntansi() {
   const [tanggal, setTanggal] = useState<Date>(new Date());
+  const [showZero, setShowZero] = useState(false);
   const tanggalStr = format(tanggal, "yyyy-MM-dd");
 
   const { data: akunList } = useQuery({
@@ -43,15 +45,26 @@ export default function TabNeracaAkuntansi() {
     queryKey: ["neraca_akuntansi", tanggalStr],
     enabled: !!akunList,
     queryFn: async () => {
-      const { data: details, error } = await supabase
-        .from("jurnal_detail")
-        .select("debit, kredit, akun_id, jurnal:jurnal_id!inner(tanggal, status)")
-        .eq("jurnal.status", "posted")
-        .lte("jurnal.tanggal", tanggalStr);
-      if (error) throw error;
+      // Fetch all jurnal_detail with pagination to avoid 1000-row limit
+      let allDetails: any[] = [];
+      let from = 0;
+      const batchSize = 5000;
+      while (true) {
+        const { data: details, error } = await supabase
+          .from("jurnal_detail")
+          .select("debit, kredit, akun_id, jurnal:jurnal_id!inner(tanggal, status)")
+          .eq("jurnal.status", "posted")
+          .lte("jurnal.tanggal", tanggalStr)
+          .range(from, from + batchSize - 1);
+        if (error) throw error;
+        if (!details || details.length === 0) break;
+        allDetails = allDetails.concat(details);
+        if (details.length < batchSize) break;
+        from += batchSize;
+      }
 
       const mutasiMap = new Map<string, { debit: number; kredit: number }>();
-      (details as any[])?.forEach((row: any) => {
+      allDetails.forEach((row: any) => {
         const id = row.akun_id;
         if (!id) return;
         if (!mutasiMap.has(id)) mutasiMap.set(id, { debit: 0, kredit: 0 });
@@ -60,9 +73,10 @@ export default function TabNeracaAkuntansi() {
         m.kredit += Number(row.kredit || 0);
       });
 
-      const result: AkunNeraca[] = [];
+      const neracaItems: AkunNeraca[] = [];
+      let labaRugi = 0; // pendapatan - beban
+
       akunList?.forEach((akun) => {
-        if (!["aset", "liabilitas", "ekuitas"].includes(akun.jenis)) return;
         const mutasi = mutasiMap.get(akun.id) || { debit: 0, kredit: 0 };
         let saldo = Number(akun.saldo_awal || 0);
         if (akun.saldo_normal === "debit") {
@@ -70,40 +84,70 @@ export default function TabNeracaAkuntansi() {
         } else {
           saldo += mutasi.kredit - mutasi.debit;
         }
-        result.push({ kode: akun.kode, nama: akun.nama, jenis: akun.jenis, saldo });
+
+        if (["aset", "liabilitas", "ekuitas"].includes(akun.jenis)) {
+          neracaItems.push({ kode: akun.kode, nama: akun.nama, jenis: akun.jenis, saldo });
+        } else if (akun.jenis === "pendapatan") {
+          labaRugi += saldo;
+        } else if (akun.jenis === "beban") {
+          labaRugi -= saldo;
+        }
       });
-      return result.sort((a, b) => a.kode.localeCompare(b.kode));
+
+      return {
+        items: neracaItems.sort((a, b) => a.kode.localeCompare(b.kode)),
+        labaRugi,
+      };
     },
   });
 
-  const aset = data?.filter((a) => a.jenis === "aset") || [];
-  const liabilitas = data?.filter((a) => a.jenis === "liabilitas") || [];
-  const ekuitas = data?.filter((a) => a.jenis === "ekuitas") || [];
-  const totalAset = aset.reduce((s, a) => s + a.saldo, 0);
-  const totalLiabilitas = liabilitas.reduce((s, a) => s + a.saldo, 0);
-  const totalEkuitas = ekuitas.reduce((s, a) => s + a.saldo, 0);
+  const items = data?.items || [];
+  const labaRugi = data?.labaRugi || 0;
+
+  const filterSaldo = (list: AkunNeraca[]) =>
+    showZero ? list : list.filter((a) => Math.abs(a.saldo) >= 1);
+
+  const aset = filterSaldo(items.filter((a) => a.jenis === "aset"));
+  const liabilitas = filterSaldo(items.filter((a) => a.jenis === "liabilitas"));
+  const ekuitas = filterSaldo(items.filter((a) => a.jenis === "ekuitas"));
+
+  const totalAset = items.filter((a) => a.jenis === "aset").reduce((s, a) => s + a.saldo, 0);
+  const totalLiabilitas = items.filter((a) => a.jenis === "liabilitas").reduce((s, a) => s + a.saldo, 0);
+  const totalEkuitasAkun = items.filter((a) => a.jenis === "ekuitas").reduce((s, a) => s + a.saldo, 0);
+  const totalEkuitas = totalEkuitasAkun + labaRugi;
   const totalLE = totalLiabilitas + totalEkuitas;
   const seimbang = Math.abs(totalAset - totalLE) < 1;
 
+  const exportData = [
+    ...items,
+    ...(Math.abs(labaRugi) >= 1 ? [{ kode: "", nama: "Laba (Rugi) Berjalan", jenis: "ekuitas", saldo: labaRugi }] : []),
+  ];
+
   return (
     <div className="space-y-4 pt-4">
-      <div className="flex gap-3 items-end justify-between">
-        <div>
-          <Label>Per Tanggal</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-[200px] justify-start text-left font-normal", !tanggal && "text-muted-foreground")}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(tanggal, "dd MMMM yyyy", { locale: idLocale })}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={tanggal} onSelect={(d) => d && setTanggal(d)} initialFocus className="p-3 pointer-events-auto" />
-            </PopoverContent>
-          </Popover>
+      <div className="flex flex-wrap gap-3 items-end justify-between">
+        <div className="flex flex-wrap gap-3 items-end">
+          <div>
+            <Label>Per Tanggal</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[200px] justify-start text-left font-normal", !tanggal && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(tanggal, "dd MMMM yyyy", { locale: idLocale })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={tanggal} onSelect={(d) => d && setTanggal(d)} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="flex items-center gap-2 pb-1">
+            <Switch id="show-zero" checked={showZero} onCheckedChange={setShowZero} />
+            <Label htmlFor="show-zero" className="text-sm cursor-pointer">Tampilkan saldo nol</Label>
+          </div>
         </div>
         <ExportButton
-          data={(data || []) as any}
+          data={exportData as any}
           filename={`neraca-${tanggalStr}`}
           columns={[
             { key: "kode", label: "Kode" },
@@ -165,7 +209,13 @@ export default function TabNeracaAkuntansi() {
                       <span className="font-medium">{formatRupiah(a.saldo)}</span>
                     </div>
                   ))}
-                  {ekuitas.length === 0 && <p className="text-sm text-muted-foreground pl-4">Tidak ada data</p>}
+                  {Math.abs(labaRugi) >= 1 && (
+                    <div className="flex justify-between py-1 pl-4 text-sm italic">
+                      <span>Laba (Rugi) Berjalan</span>
+                      <span className={cn("font-medium", labaRugi < 0 && "text-destructive")}>{formatRupiah(labaRugi)}</span>
+                    </div>
+                  )}
+                  {ekuitas.length === 0 && Math.abs(labaRugi) < 1 && <p className="text-sm text-muted-foreground pl-4">Tidak ada data</p>}
                   <div className="border-t mt-2 pt-2 flex justify-between font-bold">
                     <span>Total Ekuitas</span><span>{formatRupiah(totalEkuitas)}</span>
                   </div>
