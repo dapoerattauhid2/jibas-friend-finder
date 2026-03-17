@@ -27,8 +27,18 @@ export default function TunggakanPembayaran() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showConfirm, setShowConfirm] = useState(false);
   const [isBulkPaying, setIsBulkPaying] = useState(false);
+  const [tahunAjaranId, setTahunAjaranId] = useState<string>("");
 
   const { data: lembagaList } = useLembaga();
+  const { data: tahunAjaranList } = useTahunAjaran();
+  const { data: tahunAjaranAktif } = useTahunAjaranAktif();
+
+  // Auto-select active tahun ajaran
+  useState(() => {
+    if (tahunAjaranAktif?.id && !tahunAjaranId) {
+      setTahunAjaranId(tahunAjaranAktif.id);
+    }
+  });
   const { data: jenisList } = useJenisPembayaran(departemenId || undefined);
   const { data: kelasList } = useKelas();
 
