@@ -36,14 +36,8 @@ export async function getTarifBatch(
     .eq("jenis_id", jenisId)
     .eq("aktif", true);
 
-  // Get default nominal
-  const { data: jenis } = await supabase
-    .from("jenis_pembayaran")
-    .select("nominal")
-    .eq("id", jenisId)
-    .single();
-
-  const defaultNominal = Number(jenis?.nominal || 0);
+  // No default fallback — explicit billing only
+  const defaultNominal = 0;
 
   for (const siswaId of siswaIds) {
     if (!tarifList?.length) {
