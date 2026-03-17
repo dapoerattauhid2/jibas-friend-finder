@@ -156,6 +156,7 @@ const App = () => (
                   <Route path="/keuangan/penerimaan-lain" element={<LaporanPenerimaanLain />} />
                   <Route path="/keuangan/online-payment" element={<OnlinePayment />} />
                   <Route path="/keuangan/audit-trail" element={<AuditTrail />} />
+                  <Route path="/keuangan/pengakuan-pendapatan" element={<PengakuanPendapatan />} />
                 </Route>
                 {/* Kepegawaian */}
                 <Route path="/kepegawaian" element={<Kepegawaian />} />
