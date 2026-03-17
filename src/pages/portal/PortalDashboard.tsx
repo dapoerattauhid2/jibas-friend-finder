@@ -53,19 +53,11 @@ export default function PortalDashboard() {
     queryKey: ["portal-tagihan-count", siswaIds],
     queryFn: async () => {
       if (siswaIds.length === 0) return 0;
-      const currentMonth = new Date().getMonth() + 1;
-      let query = supabase
+      const { count } = await supabase
         .from("v_tagihan_belum_bayar")
         .select("*", { count: "exact", head: true })
         .in("siswa_id", siswaIds)
         .eq("sudah_bayar", false);
-      // Filter: hanya bulan yang sudah jatuh tempo (academic year Jul-Jun)
-      if (currentMonth < 7) {
-        query = query.or(`bulan.gte.7,bulan.lte.${currentMonth}`);
-      } else {
-        query = query.gte("bulan", 7).lte("bulan", currentMonth);
-      }
-      const { count } = await query;
       return count || 0;
     },
     enabled: siswaIds.length > 0,
