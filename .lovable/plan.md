@@ -1,36 +1,99 @@
 
 
-## Perbaikan Proses Tutup Buku
+## Plan: PSB Self-Registration by Parents + Auto NIS on Acceptance
 
-### Masalah Saat Ini
-1. **Tidak ada pencatatan Laba/Rugi ke Ekuitas** — Selisih pendapatan dan beban (laba/rugi) tidak dipindahkan ke akun "Laba Ditahan" di Ekuitas
-2. **Tidak ada penguncian periode** — Setelah tutup buku, transaksi masih bisa diinput ke periode lama
-3. **Tidak ada audit trail** — Tidak tercatat siapa yang melakukan tutup buku dan kapan
+### Overview
 
-### Rencana Perbaikan
+Two main features:
+1. **Public PSB registration page** where prospective parents can self-register their child with parent data, without needing to log in.
+2. **Auto-generate NIS** when admin clicks "Terima" (accept) on the PSB page.
 
-#### 1. Database Migration
-- Tambah kolom `ditutup` (boolean, default false) pada tabel `tahun_ajaran` untuk menandai periode yang sudah ditutup buku (berbeda dari `aktif`)
-- Tambah tabel `log_tutup_buku` untuk audit trail:
-  - `id`, `tahun_ajaran_id`, `user_id`, `tanggal_proses`, `total_laba_rugi`, `jurnal_id`, `keterangan`
-- Tambah setting `AKUN_LABA_DITAHAN` di tabel `pengaturan_akun` agar user bisa mapping akun Ekuitas untuk menampung laba/rugi
+### Current State
 
-#### 2. Perbaikan Logika Tutup Buku (`TutupBuku.tsx`)
-- Sebelum proses, cek apakah akun "Laba Ditahan" sudah dikonfigurasi di `pengaturan_akun`
-- Pada jurnal penutup, tambahkan baris untuk memindahkan selisih laba/rugi ke akun Laba Ditahan:
-  - Laba (positif): Kredit akun Laba Ditahan
-  - Rugi (negatif): Debit akun Laba Ditahan
-- Set `ditutup = true` pada tahun ajaran yang ditutup
-- Insert record ke `log_tutup_buku`
-- Tampilkan ringkasan Laba/Rugi di preview sebelum tutup buku
+- PSB page (`/akademik/psb`) is admin-only, with a simple form (nama, JK, telepon, alamat, angkatan).
+- `siswa_detail` table stores parent info: `nama_ayah`, `nama_ibu`, `pekerjaan_ayah`, `pekerjaan_ibu`, `telepon_ortu`, `alamat_ortu`.
+- `siswa` table has columns: `nis`, `nama`, `jenis_kelamin`, `tempat_lahir`, `tanggal_lahir`, `agama`, `alamat`, `telepon`, `email`, `foto_url`, `status`, `angkatan_id`.
+- `generate-nis` edge function exists but requires auth (admin/kepala_sekolah role check).
+- RLS on `siswa` only allows admin to INSERT. Anonymous users cannot insert.
 
-#### 3. Penguncian Periode
-- Pada hook `useCreateJurnal` dan `useUpdateJurnal` di `useJurnal.ts`, tambahkan validasi: jika tanggal jurnal jatuh dalam periode tahun ajaran yang `ditutup = true`, tolak transaksi
-- Pada `InputPembayaran` dan `InputPengeluaran`, tambahkan validasi serupa
+### Design Decisions
 
-#### 4. UI Tambahan di Halaman Tutup Buku
-- Tampilkan card ringkasan: Total Pendapatan, Total Beban, Laba/Rugi Bersih
-- Tampilkan warning jika akun Laba Ditahan belum dikonfigurasi
-- Tampilkan riwayat tutup buku dari tabel `log_tutup_buku`
-- Filter dropdown tahun buku: tandai yang sudah ditutup agar tidak bisa ditutup ulang
+- The public PSB form will call a **new edge function** `psb-daftar` that uses the service role key to insert data (bypassing RLS). No authentication required (`verify_jwt = false`).
+- Agama is hardcoded to "Islam" and not shown in the form.
+- NIS is not shown in the PSB form.
+- The form only shows departemen selection (not kelas/tingkat/angkatan for akademik data).
+- When admin clicks "Terima", the system auto-generates NIS using the existing `generate-nis` logic (inline, not calling the edge function) and updates the siswa record.
+
+### Implementation Steps
+
+#### 1. Create Edge Function `psb-daftar`
+
+New file: `supabase/functions/psb-daftar/index.ts`
+
+- No auth required (public registration)
+- Accepts: student data (nama, jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, telepon) + parent data (nama_ayah, nama_ibu, pekerjaan_ayah, pekerjaan_ibu, telepon_ortu, alamat_ortu) + departemen_id
+- Uses service role key to:
+  1. Insert into `siswa` with `status: 'calon'`, `agama: 'Islam'`, no NIS
+  2. Insert into `siswa_detail` with parent info
+- Returns success/error
+- Add rate limiting / basic validation
+
+Update `supabase/config.toml`:
+```toml
+[functions.psb-daftar]
+verify_jwt = false
+```
+
+#### 2. Create Public PSB Registration Page
+
+New file: `src/pages/portal/PSBDaftar.tsx`
+
+A public page (no login required) with a multi-section form:
+
+**Data Calon Siswa:**
+- Nama Lengkap (required)
+- Jenis Kelamin (L/P select)
+- Tempat Lahir
+- Tanggal Lahir
+- Alamat
+- Telepon
+- Departemen (required, fetched from `departemen` table)
+
+**Data Orang Tua:**
+- Nama Ayah
+- Nama Ibu
+- Pekerjaan Ayah
+- Pekerjaan Ibu
+- Telepon Orang Tua
+- Alamat Orang Tua
+
+Agama auto-set to "Islam" (not displayed). NIS not displayed.
+
+On submit: calls `psb-daftar` edge function via `supabase.functions.invoke()`.
+Shows success message with registration confirmation.
+
+#### 3. Add Route for Public PSB Page
+
+In `src/App.tsx`, add a public route:
+```
+<Route path="/psb" element={<PSBDaftar />} />
+```
+
+#### 4. Update Admin PSB Page - Auto NIS on "Terima"
+
+Modify `src/pages/akademik/PSB.tsx`:
+
+- `handleTerima`: When accepting a student, auto-generate NIS by calling the `generate-nis` edge function, then update siswa with both `status: 'diterima'` and the generated `nis`.
+- Update the query to also fetch `departemen` info via siswa's detail or angkatan.
+- Add departemen column to the table display.
+- Show parent data in the table or a detail view.
+
+#### 5. Add Link from Portal Login to PSB
+
+On `src/pages/portal/PortalLogin.tsx`, add a link: "Belum terdaftar? Daftarkan anak Anda" pointing to `/psb`.
+
+### Technical Notes
+
+- The `departemen` table is readable by authenticated users. For the public form, the edge function `psb-daftar` will also accept `departemen_id` and validate it server-side. The public page will need to fetch departemen list — we can either hardcode or add a simple public endpoint. Simplest: fetch via Supabase anon key (RLS allows authenticated SELECT only, so we need to add an anon SELECT policy on departemen, or fetch departemen list within the edge function). **Best approach**: the edge function returns the list of departemen when called with GET, and handles registration on POST.
+- The `generate-nis` edge function has an auth check. For auto-NIS on "Terima", the admin is already authenticated, so it works as-is. We call it from the client via `supabase.functions.invoke('generate-nis', ...)`.
 
