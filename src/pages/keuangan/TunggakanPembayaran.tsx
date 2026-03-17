@@ -213,8 +213,13 @@ export default function TunggakanPembayaran() {
   const lembagaNama = lembagaList?.find((l: any) => l.id === departemenId);
   const kelasNama = filteredKelas?.find((k: any) => k.id === kelasId);
   const jenisNama = jenisList?.find((j: any) => j.id === jenisId);
+  const tahunAjaranNama = tahunAjaranList?.find((t: any) => t.id === tahunAjaranId);
 
   const activeFilters: ActiveFilter[] = [
+    ...(tahunAjaranId ? [{
+      key: "tahun", label: "Tahun Ajaran", value: tahunAjaranNama?.nama || tahunAjaranId,
+      onClear: () => setTahunAjaranId(""),
+    }] : []),
     ...(departemenId ? [{
       key: "lembaga", label: "Lembaga", value: lembagaNama?.kode || lembagaNama?.nama || departemenId,
       onClear: () => { setDepartemenId(""); setJenisId(""); setKelasId(""); setSelectedIds(new Set()); },
