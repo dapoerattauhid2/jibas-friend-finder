@@ -34,11 +34,11 @@ export default function TunggakanPembayaran() {
   const { data: tahunAjaranAktif } = useTahunAjaranAktif();
 
   // Auto-select active tahun ajaran
-  useState(() => {
+  useEffect(() => {
     if (tahunAjaranAktif?.id && !tahunAjaranId) {
       setTahunAjaranId(tahunAjaranAktif.id);
     }
-  });
+  }, [tahunAjaranAktif]);
   const { data: jenisList } = useJenisPembayaran(departemenId || undefined);
   const { data: kelasList } = useKelas();
 
