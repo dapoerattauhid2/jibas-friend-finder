@@ -95,7 +95,8 @@ export default function PortalTagihan() {
         });
       }
       
-      return items;
+      // Filter out items with no configured tarif (nominal === 0)
+      return items.filter(t => t.nominal > 0);
     },
     enabled: anakIds.length > 0,
   });

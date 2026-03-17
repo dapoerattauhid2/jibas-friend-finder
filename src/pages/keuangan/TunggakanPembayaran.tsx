@@ -81,6 +81,7 @@ export default function TunggakanPembayaran() {
         const result: any[] = [];
         filtered.forEach((ks: any) => {
           const nominal = tarifMap.get(ks.siswa_id) || 0;
+          if (nominal === 0) return; // Skip students without configured tarif
           const paid = paidMap.get(ks.siswa_id) || 0;
           const sisa = nominal - paid;
           if (sisa > 0) {
@@ -116,6 +117,7 @@ export default function TunggakanPembayaran() {
         const result: any[] = [];
         filtered.forEach((ks: any) => {
           const nominal = tarifMap.get(ks.siswa_id) || 0;
+          if (nominal === 0) return; // Skip students without configured tarif
           const paid = paidMap.get(ks.siswa_id) || new Set();
           const bulanTunggak: number[] = [];
           for (let b = Number(bulanDari); b <= Number(bulanSampai); b++) {

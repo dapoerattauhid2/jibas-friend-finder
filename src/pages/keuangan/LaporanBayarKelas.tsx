@@ -60,7 +60,8 @@ export default function LaporanBayarKelas() {
         const siswa = ks.siswa;
         const siswaPayments = (payments || []).filter((p: any) => p.siswa_id === siswa.id);
         const totalBayar = siswaPayments.reduce((s: number, p: any) => s + Number(p.jumlah || 0), 0);
-        const nominal = tarifMap.get(siswa.id) || Number(jenis?.nominal || 0);
+        const nominal = tarifMap.get(siswa.id) || 0;
+        if (nominal === 0) return null; // Skip students without configured tarif
 
         if (tipe === "sekali") {
           return {
@@ -86,7 +87,7 @@ export default function LaporanBayarKelas() {
             bulanLunas,
           };
         }
-      }).sort((a: any, b: any) => a.nama.localeCompare(b.nama));
+      }).filter(Boolean).sort((a: any, b: any) => a.nama.localeCompare(b.nama));
     },
   });
 
