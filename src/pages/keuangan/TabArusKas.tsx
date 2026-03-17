@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ExportButton } from "@/components/shared/ExportButton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatRupiah, namaBulan } from "@/hooks/useKeuangan";
+import { formatRupiah, namaBulan, BULAN_ORDER_AKADEMIK } from "@/hooks/useKeuangan";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface ArusItem {
