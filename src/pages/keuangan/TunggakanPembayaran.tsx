@@ -71,7 +71,7 @@ export default function TunggakanPembayaran() {
       if (!filtered.length) return [];
 
       const siswaIds = filtered.map((s: any) => s.siswa_id);
-      const tarifMap = await getTarifBatch(jenisId, siswaIds, kelasId || undefined);
+      const tarifMap = await getTarifBatch(jenisId, siswaIds, kelasId || undefined, tahunAjaranId);
       const tipe = (selectedJenis as any)?.tipe || "bulanan";
 
       if (tipe === "sekali") {
