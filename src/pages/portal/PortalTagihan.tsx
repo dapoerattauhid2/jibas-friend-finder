@@ -73,13 +73,19 @@ export default function PortalTagihan() {
     queryKey: ["portal-tagihan", anakIds],
     queryFn: async () => {
       if (anakIds.length === 0) return [];
-      const { data } = await supabase
+      const currentMonth = new Date().getMonth() + 1;
+      let query = supabase
         .from("v_tagihan_belum_bayar")
         .select("*")
         .in("siswa_id", anakIds)
-        .eq("sudah_bayar", false)
-        .order("nama_siswa")
-        .order("bulan");
+        .eq("sudah_bayar", false);
+      // Filter: hanya bulan yang sudah jatuh tempo (academic year Jul-Jun)
+      if (currentMonth < 7) {
+        query = query.or(`bulan.gte.7,bulan.lte.${currentMonth}`);
+      } else {
+        query = query.gte("bulan", 7).lte("bulan", currentMonth);
+      }
+      const { data } = await query.order("nama_siswa").order("bulan");
       
       const items = (data || []) as TagihanItem[];
       
