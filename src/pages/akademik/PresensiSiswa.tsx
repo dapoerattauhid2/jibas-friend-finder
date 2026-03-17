@@ -16,7 +16,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { namaBulan } from "@/hooks/useKeuangan";
+import { namaBulan, BULAN_ORDER_AKADEMIK } from "@/hooks/useKeuangan";
 
 const STATUS_OPTIONS = [
   { value: "H", label: "H", color: "bg-emerald-500 text-white" },
@@ -242,7 +242,7 @@ function RekapPresensi() {
   return (
     <div className="space-y-4 pt-4">
       <div className="flex gap-3 items-end flex-wrap">
-        <div><Label>Bulan</Label><Select value={String(bulan)} onValueChange={(v) => setBulan(Number(v))}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent>{Array.from({ length: 12 }, (_, i) => <SelectItem key={i + 1} value={String(i + 1)}>{namaBulan(i + 1)}</SelectItem>)}</SelectContent></Select></div>
+        <div><Label>Bulan</Label><Select value={String(bulan)} onValueChange={(v) => setBulan(Number(v))}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent>{BULAN_ORDER_AKADEMIK.map((m) => <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>)}</SelectContent></Select></div>
         <div><Label>Tahun</Label><Input type="number" className="w-24" value={tahun} onChange={(e) => setTahun(Number(e.target.value))} /></div>
         <div><Label>Kelas</Label><Select value={kelasId} onValueChange={setKelasId}><SelectTrigger className="w-44"><SelectValue placeholder="Pilih" /></SelectTrigger><SelectContent>{kelasList?.map((k: any) => <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>)}</SelectContent></Select></div>
         {rekapData && <ExportButton data={rekapData.map((r) => ({ NIS: r.nis, Nama: r.nama, Hadir: r.H, Izin: r.I, Sakit: r.S, Alpha: r.A }))} filename={`rekap-presensi-${bulan}-${tahun}`} />}

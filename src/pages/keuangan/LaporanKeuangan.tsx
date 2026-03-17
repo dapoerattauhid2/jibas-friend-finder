@@ -9,7 +9,7 @@ import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 import { ExportButton } from "@/components/shared/ExportButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useKelas } from "@/hooks/useAkademikData";
-import { useJenisPembayaran, useRekapKeuanganPerLembaga, useLembaga, formatRupiah, namaBulan, BULAN_NAMES } from "@/hooks/useKeuangan";
+import { useJenisPembayaran, useRekapKeuanganPerLembaga, useLembaga, formatRupiah, namaBulan, BULAN_NAMES, BULAN_ORDER_AKADEMIK } from "@/hooks/useKeuangan";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -197,7 +197,7 @@ function TabPenerimaan({ departemenId }: { departemenId?: string }) {
           <Label>Bulan</Label>
           <Select value={String(bulan)} onValueChange={(v) => setBulan(Number(v))}>
             <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-            <SelectContent>{Array.from({ length: 12 }, (_, i) => <SelectItem key={i+1} value={String(i+1)}>{namaBulan(i+1)}</SelectItem>)}</SelectContent>
+            <SelectContent>{BULAN_ORDER_AKADEMIK.map((m) => <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div>
@@ -274,7 +274,7 @@ function TabPengeluaran({ departemenId }: { departemenId?: string }) {
           <Label>Bulan</Label>
           <Select value={String(bulan)} onValueChange={(v) => setBulan(Number(v))}>
             <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-            <SelectContent>{Array.from({ length: 12 }, (_, i) => <SelectItem key={i+1} value={String(i+1)}>{namaBulan(i+1)}</SelectItem>)}</SelectContent>
+            <SelectContent>{BULAN_ORDER_AKADEMIK.map((m) => <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div>
@@ -334,9 +334,9 @@ function TabRekapSPP() {
   const sppColumns: DataTableColumn<any>[] = [
     { key: "nis", label: "NIS" },
     { key: "nama", label: "Nama" },
-    ...Array.from({ length: 12 }, (_, i) => ({
-      key: `b${i + 1}`,
-      label: BULAN_NAMES[i].substring(0, 3),
+    ...BULAN_ORDER_AKADEMIK.map((m) => ({
+      key: `b${m}`,
+      label: BULAN_NAMES[m - 1].substring(0, 3),
       render: (v: unknown) => (
         <span className={v === "✓" ? "text-success font-bold" : "text-destructive font-bold"}>
           {v as string}
@@ -455,7 +455,7 @@ function TabNeraca({ departemenId }: { departemenId?: string }) {
           <Label>Bulan</Label>
           <Select value={String(bulan)} onValueChange={(v) => setBulan(Number(v))}>
             <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-            <SelectContent>{Array.from({ length: 12 }, (_, i) => <SelectItem key={i+1} value={String(i+1)}>{namaBulan(i+1)}</SelectItem>)}</SelectContent>
+            <SelectContent>{BULAN_ORDER_AKADEMIK.map((m) => <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div>

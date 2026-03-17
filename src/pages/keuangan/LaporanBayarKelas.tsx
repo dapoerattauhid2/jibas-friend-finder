@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 import { FilterToolbar, ActiveFilter } from "@/components/shared/FilterToolbar";
-import { useLembaga, useJenisPembayaran, useTahunAjaran, useTahunAjaranAktif, formatRupiah, namaBulan } from "@/hooks/useKeuangan";
+import { useLembaga, useJenisPembayaran, useTahunAjaran, useTahunAjaranAktif, formatRupiah, namaBulan, BULAN_ORDER_AKADEMIK } from "@/hooks/useKeuangan";
 import { getTarifBatch } from "@/hooks/useTarifTagihan";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -96,9 +96,9 @@ export default function LaporanBayarKelas() {
     { key: "nama", label: "Nama Siswa" },
     { key: "nis", label: "NIS" },
     { key: "nominal", label: "Tarif", render: (v: any) => formatRupiah(Number(v)) },
-    ...Array.from({ length: 12 }, (_, i) => ({
-      key: `b${i + 1}`,
-      label: namaBulan(i + 1).slice(0, 3),
+    ...BULAN_ORDER_AKADEMIK.map((m) => ({
+      key: `b${m}`,
+      label: namaBulan(m).slice(0, 3),
       render: (v: any) => v > 0
         ? <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
         : <XCircle className="h-4 w-4 text-destructive/40 mx-auto" />,

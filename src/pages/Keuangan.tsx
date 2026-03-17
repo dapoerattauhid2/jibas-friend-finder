@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatsCard } from "@/components/shared/StatsCard";
 import { Wallet, TrendingUp, TrendingDown, PiggyBank, Building2 } from "lucide-react";
-import { useRekapPembayaranBulanan, useRekapPengeluaranBulanan, useTotalTabungan, useRekapKeuanganPerLembaga, formatRupiah, BULAN_NAMES } from "@/hooks/useKeuangan";
+import { useRekapPembayaranBulanan, useRekapPengeluaranBulanan, useTotalTabungan, useRekapKeuanganPerLembaga, formatRupiah, BULAN_NAMES, BULAN_ORDER_AKADEMIK } from "@/hooks/useKeuangan";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
@@ -48,11 +48,11 @@ export default function Keuangan() {
   const totalPengeluaranYayasan = rekapLembaga?.reduce((s, r) => s + r.totalPengeluaran, 0) || 0;
   const saldoYayasan = totalPemasukanYayasan - totalPengeluaranYayasan;
 
-  const chartData = rekapPemasukan?.map((r, i) => ({
-    bulan: BULAN_NAMES[i].substring(0, 3),
-    Penerimaan: r.total,
-    Pengeluaran: rekapPengeluaran?.[i]?.total || 0,
-  })) || [];
+  const chartData = BULAN_ORDER_AKADEMIK.map((m) => ({
+    bulan: BULAN_NAMES[m - 1].substring(0, 3),
+    Penerimaan: rekapPemasukan?.[m - 1]?.total || 0,
+    Pengeluaran: rekapPengeluaran?.[m - 1]?.total || 0,
+  }));
 
   const loading = loadP || loadE || loadT;
 

@@ -11,7 +11,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FilterToolbar, ActiveFilter } from "@/components/shared/FilterToolbar";
 import { Badge } from "@/components/ui/badge";
 import { useJurnalList, useJurnalDetail, useCreateJurnal, useUpdateJurnal, useDeleteJurnal, usePostJurnal, useAkunRekening } from "@/hooks/useJurnal";
-import { formatRupiah, BULAN_NAMES, useLembaga } from "@/hooks/useKeuangan";
+import { formatRupiah, BULAN_NAMES, BULAN_ORDER_AKADEMIK, namaBulan, useLembaga } from "@/hooks/useKeuangan";
 import { Plus, Eye, Pencil, Trash2, Lock, Send } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -210,7 +210,7 @@ export default function JurnalUmum() {
               <Select value={String(bulan)} onValueChange={v => setBulan(Number(v))}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {BULAN_NAMES.map((n, i) => <SelectItem key={i} value={String(i + 1)}>{n}</SelectItem>)}
+                  {BULAN_ORDER_AKADEMIK.map((m) => <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

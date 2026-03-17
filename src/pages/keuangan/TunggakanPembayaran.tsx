@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FilterToolbar, ActiveFilter } from "@/components/shared/FilterToolbar";
-import { useJenisPembayaran, useLembaga, useTahunAjaranAktif, useTahunAjaran, formatRupiah, namaBulan } from "@/hooks/useKeuangan";
+import { useJenisPembayaran, useLembaga, useTahunAjaranAktif, useTahunAjaran, formatRupiah, namaBulan, BULAN_ORDER_AKADEMIK } from "@/hooks/useKeuangan";
 import { getTarifBatch } from "@/hooks/useTarifTagihan";
 import { useKelas } from "@/hooks/useAkademikData";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,8 +22,8 @@ export default function TunggakanPembayaran() {
   const [departemenId, setDepartemenId] = useState<string>("");
   const [kelasId, setKelasId] = useState<string>("");
   const [jenisId, setJenisId] = useState<string>("");
-  const [bulanDari, setBulanDari] = useState("1");
-  const [bulanSampai, setBulanSampai] = useState(String(new Date().getMonth() + 1));
+  const [bulanDari, setBulanDari] = useState("7");
+  const [bulanSampai, setBulanSampai] = useState("6");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showConfirm, setShowConfirm] = useState(false);
   const [isBulkPaying, setIsBulkPaying] = useState(false);
@@ -109,14 +109,24 @@ export default function TunggakanPembayaran() {
         });
         return result;
       } else {
+        // Build the list of months to check (supports wrap-around e.g. 7→6)
+        const dari = Number(bulanDari);
+        const sampai = Number(bulanSampai);
+        const bulanRange: number[] = [];
+        if (dari <= sampai) {
+          for (let b = dari; b <= sampai; b++) bulanRange.push(b);
+        } else {
+          for (let b = dari; b <= 12; b++) bulanRange.push(b);
+          for (let b = 1; b <= sampai; b++) bulanRange.push(b);
+        }
+
         const { data: payments } = await supabase
           .from("pembayaran")
           .select("siswa_id, bulan")
           .eq("jenis_id", jenisId)
           .eq("tahun_ajaran_id", tahunAjaranId)
           .in("siswa_id", siswaIds)
-          .gte("bulan", Number(bulanDari))
-          .lte("bulan", Number(bulanSampai));
+          .in("bulan", bulanRange);
 
         const paidMap = new Map<string, Set<number>>();
         payments?.forEach((p) => {
@@ -130,7 +140,7 @@ export default function TunggakanPembayaran() {
           if (nominal === 0) return;
           const paid = paidMap.get(ks.siswa_id) || new Set();
           const bulanTunggak: number[] = [];
-          for (let b = Number(bulanDari); b <= Number(bulanSampai); b++) {
+          for (const b of bulanRange) {
             if (!paid.has(b)) bulanTunggak.push(b);
           }
           if (bulanTunggak.length > 0) {
@@ -234,7 +244,7 @@ export default function TunggakanPembayaran() {
     }] : []),
     ...(!isSekaliBayar && jenisId ? [{
       key: "periode", label: "Periode", value: `${namaBulan(Number(bulanDari)).slice(0, 3)}–${namaBulan(Number(bulanSampai)).slice(0, 3)}`,
-      onClear: () => { setBulanDari("1"); setBulanSampai(String(new Date().getMonth() + 1)); },
+      onClear: () => { setBulanDari("7"); setBulanSampai("6"); },
     }] : []),
   ];
 
@@ -334,8 +344,8 @@ export default function TunggakanPembayaran() {
                   <Select value={bulanDari} onValueChange={setBulanDari}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <SelectItem key={i + 1} value={String(i + 1)}>{namaBulan(i + 1)}</SelectItem>
+                      {BULAN_ORDER_AKADEMIK.map((m) => (
+                        <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -345,8 +355,8 @@ export default function TunggakanPembayaran() {
                   <Select value={bulanSampai} onValueChange={setBulanSampai}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <SelectItem key={i + 1} value={String(i + 1)}>{namaBulan(i + 1)}</SelectItem>
+                      {BULAN_ORDER_AKADEMIK.map((m) => (
+                        <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

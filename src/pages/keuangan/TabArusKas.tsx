@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ExportButton } from "@/components/shared/ExportButton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatRupiah, namaBulan } from "@/hooks/useKeuangan";
+import { formatRupiah, namaBulan, BULAN_ORDER_AKADEMIK } from "@/hooks/useKeuangan";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface ArusItem {
@@ -106,8 +106,8 @@ export default function TabArusKas({ departemenId }: { departemenId?: string }) 
             <Select value={String(bulan)} onValueChange={(v) => setBulan(Number(v))}>
               <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {Array.from({ length: 12 }, (_, i) => (
-                  <SelectItem key={i + 1} value={String(i + 1)}>{namaBulan(i + 1)}</SelectItem>
+                {BULAN_ORDER_AKADEMIK.map((m) => (
+                  <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

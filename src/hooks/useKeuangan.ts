@@ -682,6 +682,9 @@ const BULAN_NAMES = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Ju
 export function namaBulan(b: number) { return BULAN_NAMES[b - 1] || ""; }
 export { BULAN_NAMES };
 
+/** Urutan bulan sesuai tahun ajaran: Juli–Juni */
+export const BULAN_ORDER_AKADEMIK = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
+
 // ─── Tahun Ajaran / Tahun Buku ───
 export function useTahunAjaran() {
   return useQuery({

@@ -245,8 +245,8 @@ export default function InputPengeluaran() {
           <Select value={String(filterBulan)} onValueChange={(v) => setFilterBulan(Number(v))}>
             <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {Array.from({ length: 12 }, (_, i) => (
-                <SelectItem key={i + 1} value={String(i + 1)}>{["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"][i]}</SelectItem>
+              {[7,8,9,10,11,12,1,2,3,4,5,6].map((m) => (
+                <SelectItem key={m} value={String(m)}>{["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"][m-1]}</SelectItem>
               ))}
             </SelectContent>
           </Select>

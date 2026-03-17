@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 import { supabase } from "@/integrations/supabase/client";
-import { useJenisPembayaran, usePembayaranBySiswa, useCreatePembayaran, useLembaga, useTahunAjaranAktif, useTahunAjaran, formatRupiah, terbilang, namaBulan } from "@/hooks/useKeuangan";
+import { useJenisPembayaran, usePembayaranBySiswa, useCreatePembayaran, useLembaga, useTahunAjaranAktif, useTahunAjaran, formatRupiah, terbilang, namaBulan, BULAN_ORDER_AKADEMIK } from "@/hooks/useKeuangan";
 import { useTarifSiswa } from "@/hooks/useTarifTagihan";
 import { usePengaturanAkun } from "@/hooks/useJurnal";
 import { useTagihanBySiswa, useUpdateTagihanLunas } from "@/hooks/useTagihan";
@@ -519,8 +519,8 @@ export default function InputPembayaran() {
                   <Select value={bulan} onValueChange={setBulan}>
                     <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <SelectItem key={i + 1} value={String(i + 1)}>{namaBulan(i + 1)}</SelectItem>
+                      {BULAN_ORDER_AKADEMIK.map((m) => (
+                        <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -533,8 +533,7 @@ export default function InputPembayaran() {
               <div className="space-y-2">
                 <Label className="text-xs">Status Per Bulan</Label>
                 <div className="grid grid-cols-6 gap-1.5">
-                  {Array.from({ length: 12 }, (_, i) => {
-                    const m = i + 1;
+                  {BULAN_ORDER_AKADEMIK.map((m) => {
                     const sudah = bulanDibayar.has(m);
                     const isSelected = bulan === String(m);
                     return (

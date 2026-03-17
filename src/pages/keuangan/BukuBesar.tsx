@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 import { ExportButton } from "@/components/shared/ExportButton";
 import { useAkunRekening, useBukuBesar } from "@/hooks/useJurnal";
-import { formatRupiah, BULAN_NAMES } from "@/hooks/useKeuangan";
+import { formatRupiah, BULAN_NAMES, BULAN_ORDER_AKADEMIK, namaBulan } from "@/hooks/useKeuangan";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
@@ -80,7 +80,7 @@ export default function BukuBesar() {
           <Select value={String(bulanDari)} onValueChange={v => setBulanDari(Number(v))}>
             <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {BULAN_NAMES.map((n, i) => <SelectItem key={i} value={String(i + 1)}>{n}</SelectItem>)}
+              {BULAN_ORDER_AKADEMIK.map((m) => <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -89,7 +89,7 @@ export default function BukuBesar() {
           <Select value={String(bulanSampai)} onValueChange={v => setBulanSampai(Number(v))}>
             <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {BULAN_NAMES.map((n, i) => <SelectItem key={i} value={String(i + 1)}>{n}</SelectItem>)}
+              {BULAN_ORDER_AKADEMIK.map((m) => <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
