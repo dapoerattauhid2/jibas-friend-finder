@@ -63,12 +63,6 @@ export default function TabNeracaAkuntansi({ departemenId }: { departemenId?: st
         if (details.length < batchSize) break;
         from += batchSize;
       }
-        if (error) throw error;
-        if (!details || details.length === 0) break;
-        allDetails = allDetails.concat(details);
-        if (details.length < batchSize) break;
-        from += batchSize;
-      }
 
       const mutasiMap = new Map<string, { debit: number; kredit: number }>();
       allDetails.forEach((row: any) => {
