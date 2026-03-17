@@ -234,7 +234,7 @@ export default function TunggakanPembayaran() {
     }] : []),
     ...(!isSekaliBayar && jenisId ? [{
       key: "periode", label: "Periode", value: `${namaBulan(Number(bulanDari)).slice(0, 3)}–${namaBulan(Number(bulanSampai)).slice(0, 3)}`,
-      onClear: () => { setBulanDari("1"); setBulanSampai(String(new Date().getMonth() + 1)); },
+      onClear: () => { setBulanDari("7"); setBulanSampai("6"); },
     }] : []),
   ];
 
