@@ -79,6 +79,7 @@ export default function TunggakanPembayaran() {
           .from("pembayaran")
           .select("siswa_id, jumlah")
           .eq("jenis_id", jenisId)
+          .eq("tahun_ajaran_id", tahunAjaranId)
           .in("siswa_id", siswaIds);
 
         const paidMap = new Map<string, number>();
