@@ -78,6 +78,7 @@ import PortalNilai from "./pages/portal/PortalNilai";
 // Public pages
 import InfoGuru from "./pages/InfoGuru";
 import Anjungan from "./pages/Anjungan";
+import PSBDaftar from "./pages/portal/PSBDaftar";
 // Pengaturan
 import NotifikasiGateway from "./pages/pengaturan/NotifikasiGateway";
 import BackupExport from "./pages/pengaturan/BackupExport";
