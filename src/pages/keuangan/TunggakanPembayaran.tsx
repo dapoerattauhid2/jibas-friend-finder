@@ -22,8 +22,8 @@ export default function TunggakanPembayaran() {
   const [departemenId, setDepartemenId] = useState<string>("");
   const [kelasId, setKelasId] = useState<string>("");
   const [jenisId, setJenisId] = useState<string>("");
-  const [bulanDari, setBulanDari] = useState("1");
-  const [bulanSampai, setBulanSampai] = useState(String(new Date().getMonth() + 1));
+  const [bulanDari, setBulanDari] = useState("7");
+  const [bulanSampai, setBulanSampai] = useState("6");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showConfirm, setShowConfirm] = useState(false);
   const [isBulkPaying, setIsBulkPaying] = useState(false);
