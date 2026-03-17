@@ -10,7 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTahunAjaran, formatRupiah } from "@/hooks/useKeuangan";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Lock, AlertTriangle } from "lucide-react";
+import { Lock, AlertTriangle, TrendingUp, TrendingDown, DollarSign, History } from "lucide-react";
+import { StatsCard } from "@/components/shared/StatsCard";
 
 export default function TutupBuku() {
   const [tahunId, setTahunId] = useState("");
@@ -18,8 +19,33 @@ export default function TutupBuku() {
   const qc = useQueryClient();
 
   const { data: taList } = useTahunAjaran();
-
   const selectedTA = taList?.find((t: any) => t.id === tahunId);
+
+  // Check AKUN_LABA_DITAHAN setting
+  const { data: akunLabaDitahan } = useQuery({
+    queryKey: ["pengaturan_akun", "AKUN_LABA_DITAHAN"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pengaturan_akun")
+        .select("*, akun:akun_id(id, kode, nama)")
+        .eq("kode_setting", "AKUN_LABA_DITAHAN")
+        .maybeSingle();
+      return data as any;
+    },
+  });
+
+  // Fetch log tutup buku history
+  const { data: logHistory } = useQuery({
+    queryKey: ["log_tutup_buku"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("log_tutup_buku" as any)
+        .select("*")
+        .order("tanggal_proses", { ascending: false })
+        .limit(20);
+      return (data || []) as any[];
+    },
+  });
 
   // Get all accounts with calculated balances for the selected year
   const { data: saldoAkun, isLoading } = useQuery({
@@ -30,7 +56,6 @@ export default function TutupBuku() {
       const tahunSelesai = selectedTA?.tanggal_selesai;
       if (!tahunMulai || !tahunSelesai) return [];
 
-      // Get all accounts
       const { data: akun } = await supabase
         .from("akun_rekening")
         .select("id, kode, nama, jenis, saldo_normal, saldo_awal")
@@ -39,7 +64,6 @@ export default function TutupBuku() {
 
       if (!akun?.length) return [];
 
-      // Get all journal details within the period
       const { data: jurnalList } = await supabase
         .from("jurnal")
         .select("id")
@@ -82,9 +106,20 @@ export default function TutupBuku() {
     },
   });
 
+  // Compute summary
+  const totalPendapatan = saldoAkun?.filter(a => a.jenis === "Pendapatan").reduce((s, a) => s + a.saldoAkhir, 0) || 0;
+  const totalBeban = saldoAkun?.filter(a => a.jenis === "Beban").reduce((s, a) => s + a.saldoAkhir, 0) || 0;
+  const labaRugi = totalPendapatan - totalBeban;
+
+  const hasLabaDitahan = !!akunLabaDitahan?.akun_id;
+  const isTADitutup = selectedTA?.ditutup === true;
+
   const tutupBukuMutation = useMutation({
     mutationFn: async () => {
       if (!saldoAkun?.length || !selectedTA) throw new Error("Data tidak lengkap");
+      if (!hasLabaDitahan) throw new Error("Akun Laba Ditahan belum dikonfigurasi. Silakan atur di Pengaturan > Referensi Keuangan.");
+
+      const akunLabaId = akunLabaDitahan.akun_id;
 
       // 1. Update saldo_awal for each account to saldoAkhir
       for (const akun of saldoAkun) {
@@ -101,12 +136,15 @@ export default function TutupBuku() {
         p_tahun: tahun,
       });
 
-      // Separate revenue/expense accounts for closing
       const pendapatan = saldoAkun.filter(a => a.jenis === "Pendapatan" && a.saldoAkhir !== 0);
       const beban = saldoAkun.filter(a => a.jenis === "Beban" && a.saldoAkhir !== 0);
-      const labaRugi = pendapatan.reduce((s, a) => s + a.saldoAkhir, 0) - beban.reduce((s, a) => s + a.saldoAkhir, 0);
 
-      if (pendapatan.length > 0 || beban.length > 0) {
+      let jurnalId: string | null = null;
+
+      if (pendapatan.length > 0 || beban.length > 0 || labaRugi !== 0) {
+        const totalDebitJurnal = pendapatan.reduce((s, a) => s + a.saldoAkhir, 0) + (labaRugi < 0 ? Math.abs(labaRugi) : 0);
+        const totalKreditJurnal = beban.reduce((s, a) => s + a.saldoAkhir, 0) + (labaRugi > 0 ? labaRugi : 0);
+
         const { data: jurnal, error: jErr } = await supabase
           .from("jurnal")
           .insert({
@@ -114,20 +152,21 @@ export default function TutupBuku() {
             tanggal: selectedTA.tanggal_selesai,
             keterangan: `Jurnal Penutup Tahun Buku ${selectedTA.nama}`,
             status: "posted",
-            total_debit: pendapatan.reduce((s, a) => s + a.saldoAkhir, 0) + beban.reduce((s, a) => s + a.saldoAkhir, 0),
-            total_kredit: pendapatan.reduce((s, a) => s + a.saldoAkhir, 0) + beban.reduce((s, a) => s + a.saldoAkhir, 0),
+            total_debit: totalDebitJurnal,
+            total_kredit: totalKreditJurnal,
           })
           .select()
           .single();
 
         if (!jErr && jurnal) {
-          const details: any[] = [];
+          jurnalId = (jurnal as any).id;
+          const detailRows: any[] = [];
           let urutan = 1;
 
           // Close revenue accounts (debit pendapatan)
           for (const a of pendapatan) {
-            details.push({
-              jurnal_id: jurnal.id,
+            detailRows.push({
+              jurnal_id: jurnalId,
               akun_id: a.id,
               keterangan: `Penutup ${a.nama}`,
               debit: a.saldoAkhir,
@@ -138,8 +177,8 @@ export default function TutupBuku() {
 
           // Close expense accounts (kredit beban)
           for (const a of beban) {
-            details.push({
-              jurnal_id: jurnal.id,
+            detailRows.push({
+              jurnal_id: jurnalId,
               akun_id: a.id,
               keterangan: `Penutup ${a.nama}`,
               debit: 0,
@@ -148,21 +187,55 @@ export default function TutupBuku() {
             });
           }
 
-          if (details.length > 0) {
-            await supabase.from("jurnal_detail").insert(details);
+          // Transfer laba/rugi to Laba Ditahan
+          if (labaRugi > 0) {
+            // Laba → Kredit Laba Ditahan
+            detailRows.push({
+              jurnal_id: jurnalId,
+              akun_id: akunLabaId,
+              keterangan: `Laba bersih periode ${selectedTA.nama}`,
+              debit: 0,
+              kredit: labaRugi,
+              urutan: urutan++,
+            });
+          } else if (labaRugi < 0) {
+            // Rugi → Debit Laba Ditahan
+            detailRows.push({
+              jurnal_id: jurnalId,
+              akun_id: akunLabaId,
+              keterangan: `Rugi bersih periode ${selectedTA.nama}`,
+              debit: Math.abs(labaRugi),
+              kredit: 0,
+              urutan: urutan++,
+            });
+          }
+
+          if (detailRows.length > 0) {
+            await supabase.from("jurnal_detail").insert(detailRows);
           }
         }
       }
 
-      // 3. Deactivate the tahun ajaran
-      await supabase.from("tahun_ajaran").update({ aktif: false }).eq("id", selectedTA.id);
+      // 3. Mark tahun ajaran as ditutup and deactivate
+      await supabase.from("tahun_ajaran").update({ ditutup: true, aktif: false } as any).eq("id", selectedTA.id);
+
+      // 4. Insert audit log
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from("log_tutup_buku" as any).insert({
+        tahun_ajaran_id: selectedTA.id,
+        user_id: user?.id,
+        total_laba_rugi: labaRugi,
+        jurnal_id: jurnalId,
+        keterangan: `Tutup buku ${selectedTA.nama}. Laba/Rugi: ${formatRupiah(labaRugi)}`,
+      });
 
       return selectedTA.nama;
     },
     onSuccess: (nama) => {
       qc.invalidateQueries({ queryKey: ["tahun_ajaran"] });
       qc.invalidateQueries({ queryKey: ["saldo_akun_tutup_buku"] });
-      toast.success(`Tutup buku ${nama} berhasil. Saldo awal telah diperbarui.`);
+      qc.invalidateQueries({ queryKey: ["log_tutup_buku"] });
+      toast.success(`Tutup buku ${nama} berhasil. Saldo awal telah diperbarui dan laba/rugi dipindahkan ke ekuitas.`);
       setTahunId("");
     },
     onError: (e: any) => toast.error(e.message),
@@ -181,13 +254,20 @@ export default function TutupBuku() {
     }},
   ];
 
-  const totalSaldoAkhir = saldoAkun?.reduce((s, a) => s + a.saldoAkhir, 0) || 0;
+  const logColumns: DataTableColumn<any>[] = [
+    { key: "tanggal_proses", label: "Tanggal", render: (v) => new Date(v as string).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) },
+    { key: "total_laba_rugi", label: "Laba/Rugi", render: (v) => {
+      const val = Number(v);
+      return <span className={val < 0 ? "text-destructive" : "text-emerald-600"}>{formatRupiah(val)}</span>;
+    }},
+    { key: "keterangan", label: "Keterangan" },
+  ];
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Tutup Buku</h1>
-        <p className="text-sm text-muted-foreground">Proses akhir tahun buku — hitung saldo akhir dan generate jurnal penutup</p>
+        <p className="text-sm text-muted-foreground">Proses akhir tahun buku — hitung saldo akhir, transfer laba/rugi ke ekuitas, dan kunci periode</p>
       </div>
 
       <Card className="border-warning/30 bg-warning/5">
@@ -195,10 +275,23 @@ export default function TutupBuku() {
           <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
           <div className="text-sm">
             <p className="font-medium text-warning">Perhatian!</p>
-            <p className="text-muted-foreground">Proses tutup buku akan mengubah saldo awal setiap akun rekening dan membuat jurnal penutup. Proses ini tidak dapat dibatalkan.</p>
+            <p className="text-muted-foreground">Proses tutup buku akan mengubah saldo awal setiap akun, memindahkan laba/rugi ke akun Laba Ditahan, dan mengunci periode sehingga tidak bisa diinput transaksi baru. Proses ini tidak dapat dibatalkan.</p>
           </div>
         </CardContent>
       </Card>
+
+      {/* Warning if AKUN_LABA_DITAHAN not configured */}
+      {!hasLabaDitahan && (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="pt-6 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-destructive">Akun Laba Ditahan Belum Dikonfigurasi</p>
+              <p className="text-muted-foreground">Silakan atur akun Laba Ditahan (Ekuitas) di menu <strong>Keuangan → Referensi Keuangan → Pengaturan Akun</strong> sebelum melakukan tutup buku.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="pt-6">
@@ -208,8 +301,8 @@ export default function TutupBuku() {
               <SelectTrigger><SelectValue placeholder="Pilih tahun ajaran" /></SelectTrigger>
               <SelectContent>
                 {taList?.map((t: any) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.nama} {t.aktif ? "(Aktif)" : ""}
+                  <SelectItem key={t.id} value={t.id} disabled={t.ditutup}>
+                    {t.nama} {t.aktif ? "(Aktif)" : ""} {t.ditutup ? "🔒 Sudah Ditutup" : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -218,8 +311,38 @@ export default function TutupBuku() {
         </CardContent>
       </Card>
 
-      {tahunId && (
+      {tahunId && isTADitutup && (
+        <Card className="border-muted">
+          <CardContent className="pt-6 text-center text-muted-foreground">
+            <Lock className="h-8 w-8 mx-auto mb-2" />
+            <p>Tahun buku ini sudah ditutup dan tidak bisa diproses ulang.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {tahunId && !isTADitutup && (
         <>
+          {/* Summary cards */}
+          {saldoAkun && saldoAkun.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <StatsCard
+                title="Total Pendapatan"
+                value={formatRupiah(totalPendapatan)}
+                icon={TrendingUp}
+              />
+              <StatsCard
+                title="Total Beban"
+                value={formatRupiah(totalBeban)}
+                icon={TrendingDown}
+              />
+              <StatsCard
+                title={labaRugi >= 0 ? "Laba Bersih" : "Rugi Bersih"}
+                value={formatRupiah(Math.abs(labaRugi))}
+                icon={DollarSign}
+              />
+            </div>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Saldo Akun — {selectedTA?.nama}</CardTitle>
@@ -237,7 +360,7 @@ export default function TutupBuku() {
               variant="destructive"
               size="lg"
               onClick={() => setShowConfirm(true)}
-              disabled={tutupBukuMutation.isPending || !saldoAkun?.length}
+              disabled={tutupBukuMutation.isPending || !saldoAkun?.length || !hasLabaDitahan}
             >
               <Lock className="h-4 w-4 mr-2" />
               {tutupBukuMutation.isPending ? "Memproses..." : "Proses Tutup Buku"}
@@ -246,11 +369,26 @@ export default function TutupBuku() {
         </>
       )}
 
+      {/* Riwayat Tutup Buku */}
+      {logHistory && logHistory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Riwayat Tutup Buku
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DataTable columns={logColumns} data={logHistory} pageSize={10} />
+          </CardContent>
+        </Card>
+      )}
+
       <ConfirmDialog
         open={showConfirm}
         onOpenChange={setShowConfirm}
         title="Konfirmasi Tutup Buku"
-        description={`Anda yakin ingin menutup buku untuk tahun ${selectedTA?.nama}? Saldo akhir akan menjadi saldo awal periode berikutnya. Proses ini tidak dapat dibatalkan.`}
+        description={`Anda yakin ingin menutup buku untuk tahun ${selectedTA?.nama}? Laba/Rugi sebesar ${formatRupiah(labaRugi)} akan dipindahkan ke akun Laba Ditahan. Saldo akhir akan menjadi saldo awal periode berikutnya. Periode akan dikunci dan proses ini tidak dapat dibatalkan.`}
         onConfirm={() => tutupBukuMutation.mutate()}
         confirmLabel="Ya, Tutup Buku"
         variant="destructive"

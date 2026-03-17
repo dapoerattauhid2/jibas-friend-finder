@@ -133,6 +133,20 @@ export function useJurnalDetail(jurnalId?: string) {
   });
 }
 
+// ─── Period Lock Check ───
+async function checkPeriodeLocked(tanggal: string): Promise<void> {
+  const { data } = await supabase
+    .from("tahun_ajaran")
+    .select("id, nama, ditutup, tanggal_mulai, tanggal_selesai")
+    .lte("tanggal_mulai", tanggal)
+    .gte("tanggal_selesai", tanggal)
+    .limit(1);
+  const locked = (data || []).find((d: any) => d.ditutup === true);
+  if (locked) {
+    throw new Error(`Transaksi ditolak: periode "${(locked as any).nama}" sudah ditutup buku.`);
+  }
+}
+
 async function generateNomorJurnal(tahun: number): Promise<string> {
   const { data, error } = await supabase.rpc("generate_nomor_jurnal", {
     p_prefix: "JU",
@@ -156,6 +170,9 @@ export function useCreateJurnal() {
       const totalDebit = values.details.reduce((s, d) => s + d.debit, 0);
       const totalKredit = values.details.reduce((s, d) => s + d.kredit, 0);
       if (Math.abs(totalDebit - totalKredit) > 0.01) throw new Error("Total debit harus sama dengan total kredit");
+
+      // Check period lock
+      await checkPeriodeLocked(values.tanggal);
 
       const tahun = new Date(values.tanggal).getFullYear();
       const nomor = await generateNomorJurnal(tahun);
@@ -203,6 +220,9 @@ export function useUpdateJurnal() {
       const totalDebit = values.details.reduce((s, d) => s + d.debit, 0);
       const totalKredit = values.details.reduce((s, d) => s + d.kredit, 0);
       if (Math.abs(totalDebit - totalKredit) > 0.01) throw new Error("Total debit harus sama dengan total kredit");
+
+      // Check period lock
+      await checkPeriodeLocked(values.tanggal);
 
       const { data: existing } = await supabase.from("jurnal").select("status").eq("id", values.id).single();
       if ((existing as any)?.status === "posted") throw new Error("Jurnal yang sudah diposting tidak bisa diedit");

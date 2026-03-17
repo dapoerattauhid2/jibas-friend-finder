@@ -989,6 +989,58 @@ export type Database = {
           },
         ]
       }
+      log_tutup_buku: {
+        Row: {
+          id: string
+          jurnal_id: string | null
+          keterangan: string | null
+          tahun_ajaran_id: string
+          tanggal_proses: string
+          total_laba_rugi: number
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          jurnal_id?: string | null
+          keterangan?: string | null
+          tahun_ajaran_id: string
+          tanggal_proses?: string
+          total_laba_rugi?: number
+          user_id: string
+        }
+        Update: {
+          id?: string
+          jurnal_id?: string | null
+          keterangan?: string | null
+          tahun_ajaran_id?: string
+          tanggal_proses?: string
+          total_laba_rugi?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "log_tutup_buku_jurnal_id_fkey"
+            columns: ["jurnal_id"]
+            isOneToOne: false
+            referencedRelation: "jurnal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "log_tutup_buku_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "tahun_ajaran"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "log_tutup_buku_tahun_ajaran_id_fkey"
+            columns: ["tahun_ajaran_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["tahun_ajaran_id"]
+          },
+        ]
+      }
       mata_pelajaran: {
         Row: {
           aktif: boolean | null
@@ -2943,6 +2995,7 @@ export type Database = {
       tahun_ajaran: {
         Row: {
           aktif: boolean | null
+          ditutup: boolean
           id: string
           keterangan: string | null
           nama: string
@@ -2951,6 +3004,7 @@ export type Database = {
         }
         Insert: {
           aktif?: boolean | null
+          ditutup?: boolean
           id?: string
           keterangan?: string | null
           nama: string
@@ -2959,6 +3013,7 @@ export type Database = {
         }
         Update: {
           aktif?: boolean | null
+          ditutup?: boolean
           id?: string
           keterangan?: string | null
           nama?: string
@@ -3570,6 +3625,7 @@ export type Database = {
         Args: { _siswa_id: string; _user_id: string }
         Returns: boolean
       }
+      is_periode_ditutup: { Args: { p_tanggal: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
