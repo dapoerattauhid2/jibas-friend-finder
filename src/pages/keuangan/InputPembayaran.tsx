@@ -203,12 +203,32 @@ export default function InputPembayaran() {
     const kasAkunId = pengaturanAkun?.find((p: any) => p.kode_setting === "kas_tunai")?.akun?.id;
     const pendapatanAkunId = selectedJenis?.akun_pendapatan_id;
     const piutangAkunId = pengaturanAkun?.find((p: any) => p.kode_setting === "piutang_siswa")?.akun?.id;
+    const dimukaAkunId = pengaturanAkun?.find((p: any) => p.kode_setting === "AKUN_PENDAPATAN_DIMUKA")?.akun?.id;
 
     const hasPiutang = existingTagihan && existingTagihan.status === "belum_bayar";
-    const kreditAkunId = hasPiutang ? piutangAkunId : pendapatanAkunId;
+
+    // Determine credit account based on payment type
+    let kreditAkunId: string | undefined;
+    let kreditLabel: string;
+    if (isBayarDimuka && dimukaAkunId) {
+      // Future period → credit to Unearned Revenue (Liability)
+      kreditAkunId = dimukaAkunId;
+      kreditLabel = "Pendapatan Diterima di Muka";
+    } else if (hasPiutang) {
+      kreditAkunId = piutangAkunId;
+      kreditLabel = "Piutang";
+    } else {
+      kreditAkunId = pendapatanAkunId;
+      kreditLabel = "Pendapatan";
+    }
+
     const bisaAutoJurnal = kasAkunId && kreditAkunId;
 
     if (!bisaAutoJurnal) {
+      if (isBayarDimuka && !dimukaAkunId) {
+        toast.error("Akun Pendapatan Diterima di Muka belum dikonfigurasi di Pengaturan Akun. Silakan atur terlebih dahulu.");
+        return;
+      }
       toast.warning("Akun jurnal belum dikonfigurasi. Pembayaran tersimpan tanpa jurnal otomatis.");
     }
 
@@ -218,25 +238,26 @@ export default function InputPembayaran() {
       bulan: isSekali ? 0 : Number(bulan),
       jumlah: Number(jumlah),
       tanggal_bayar: tanggalBayar,
-      keterangan: keterangan || undefined,
+      keterangan: isBayarDimuka 
+        ? `[DIMUKA] ${keterangan || ""} - Untuk TA: ${tahunAjaranList?.find((t: any) => t.id === effectiveTahunAjaranId)?.nama || ""}`.trim()
+        : keterangan || undefined,
       departemen_id: departemenId || undefined,
-      tahun_ajaran_id: tahunAktif?.id || undefined,
+      tahun_ajaran_id: effectiveTahunAjaranId || tahunAktif?.id || undefined,
     });
 
     if (bisaAutoJurnal && result?.id) {
       try {
         const tahunPembayaran = new Date(tanggalBayar).getFullYear();
         const { data: nomorJurnal, error: rpcError } = await supabase.rpc("generate_nomor_jurnal", {
-          p_prefix: "JP",
+          p_prefix: isBayarDimuka ? "JD" : "JP",
           p_tahun: tahunPembayaran,
         });
         if (rpcError) throw rpcError;
         if (!nomorJurnal) throw new Error("Gagal mendapatkan nomor jurnal");
 
-        const kreditLabel = hasPiutang ? "Piutang" : "Pendapatan";
         const keteranganJurnal = isSekali
-          ? `Penerimaan ${selectedJenis?.nama} - ${selectedSiswa.nama}`
-          : `Penerimaan ${selectedJenis?.nama} - ${selectedSiswa.nama} (${namaBulan(Number(bulan))})`;
+          ? `Penerimaan ${selectedJenis?.nama} - ${selectedSiswa.nama}${isBayarDimuka ? " (Di Muka)" : ""}`
+          : `Penerimaan ${selectedJenis?.nama} - ${selectedSiswa.nama} (${namaBulan(Number(bulan))})${isBayarDimuka ? " [Di Muka]" : ""}`;
 
         const { data: jurnal, error: jErr } = await supabase
           .from("jurnal")
