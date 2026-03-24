@@ -48,7 +48,7 @@ export default function InputPembayaran() {
   const siswaKelasId = selectedSiswa?.kelas_siswa?.[0]?.kelas?.id;
 
   const { data: applicableTarifJenisIds } = useQuery({
-    queryKey: ["applicable_tarif_jenis", selectedSiswa?.id, siswaKelasId, tahunAktif?.id, departemenId],
+    queryKey: ["applicable_tarif_jenis", selectedSiswa?.id, siswaKelasId, effectiveTahunAjaranId, departemenId],
     enabled: !!selectedSiswa && !!departemenId,
     queryFn: async () => {
       const kelasId = selectedSiswa?.kelas_siswa?.[0]?.kelas?.id || null;
@@ -66,7 +66,7 @@ export default function InputPembayaran() {
         const row = t as any;
         const matchSiswa = row.siswa_id === selectedSiswa.id || !row.siswa_id;
         const matchKelas = row.kelas_id === kelasId || !row.kelas_id;
-        const matchTahun = row.tahun_ajaran_id === tahunAktif?.id || !row.tahun_ajaran_id;
+        const matchTahun = row.tahun_ajaran_id === effectiveTahunAjaranId || !row.tahun_ajaran_id;
         if (matchSiswa && matchKelas && matchTahun && t.jenis_id) {
           validIds.add(t.jenis_id);
         }
