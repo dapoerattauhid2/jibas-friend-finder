@@ -27,7 +27,8 @@ export function parseNISComponents(
   nomorUrut: number
 ): NISComponents {
   const npsn4 = npsn.slice(-4);
-  const tahun2 = namaAngkatan.trim().slice(-2);
+  const tahunMatch = namaAngkatan.trim().match(/\d{4}/);
+  const tahun2 = tahunMatch ? tahunMatch[0].slice(-2) : namaAngkatan.trim().slice(-2);
   const rombel = getKodeRombel(namaKelas);
   return {
     npsn4,

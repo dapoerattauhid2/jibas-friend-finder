@@ -95,12 +95,13 @@ Deno.serve(async (req) => {
     if (!angkatan) {
       return error("Angkatan tidak ditemukan", 404);
     }
-    if (!/^\d{4}$/.test(angkatan.nama.trim())) {
+    const tahunMatch = angkatan.nama.trim().match(/\d{4}/);
+    if (!tahunMatch) {
       return error(
-        "Format nama angkatan harus berupa tahun, contoh: 2025"
+        "Format nama angkatan harus mengandung tahun, contoh: 2025 atau 2025/2026"
       );
     }
-    const tahun2 = angkatan.nama.trim().slice(-2);
+    const tahun2 = tahunMatch[0].slice(-2);
 
     // 3. Fetch kelas → nama → kode rombel
     const { data: kelas } = await supabase
