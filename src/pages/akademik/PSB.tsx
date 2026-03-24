@@ -296,8 +296,9 @@ export default function PSB() {
         return (
           <div className="flex gap-1 flex-wrap">
             {/* Edit */}
+            {/* Edit — navigasi ke halaman edit siswa */}
             <Button size="sm" variant="outline"
-              onClick={(e) => { e.stopPropagation(); openEdit(row); }}
+              onClick={(e) => { e.stopPropagation(); navigate(`/akademik/siswa/${row.id}/edit`); }}
               title="Edit data"
             >
               <Pencil className="h-3 w-3" />
