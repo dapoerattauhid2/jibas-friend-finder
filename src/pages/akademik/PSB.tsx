@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,7 +9,9 @@ import { StatsCard } from "@/components/shared/StatsCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useAngkatan, useDepartemen } from "@/hooks/useAkademikData";
+import { NISPreview } from "@/components/shared/NISPreview";
+import { useAngkatan, useDepartemen, useKelas } from "@/hooks/useAkademikData";
+import { generateNISViaEdgeFunction } from "@/utils/nisGenerator";
 import { UserPlus, Users, UserCheck, Clock } from "lucide-react";
 import { toast } from "sonner";
 
@@ -18,8 +19,25 @@ export default function PSB() {
   const qc = useQueryClient();
   const { data: angkatanList = [] } = useAngkatan();
   const { data: departemenList = [] } = useDepartemen();
+  const { data: kelasList = [] } = useKelas();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({ nama: "", jenis_kelamin: "L", telepon: "", alamat: "", angkatan_id: "", departemen_id: "" });
+  const [formData, setFormData] = useState({
+    nama: "", jenis_kelamin: "L", telepon: "", alamat: "",
+    angkatan_id: "", departemen_id: "", kelas_id: "",
+  });
+
+  // Filtered kelas by selected departemen
+  const filteredKelas = kelasList.filter(
+    (k: any) => !formData.departemen_id || k.departemen_id === formData.departemen_id
+  );
+  const filteredAngkatan = angkatanList.filter(
+    (a: any) => !formData.departemen_id || a.departemen_id === formData.departemen_id
+  );
+
+  // NIS preview data
+  const selectedDept = departemenList.find((d: any) => d.id === formData.departemen_id);
+  const selectedKelas = kelasList.find((k: any) => k.id === formData.kelas_id);
+  const selectedAngkatan = angkatanList.find((a: any) => a.id === formData.angkatan_id);
 
   const { data: calonList = [], isLoading } = useQuery({
     queryKey: ["siswa", "calon"],
@@ -39,7 +57,10 @@ export default function PSB() {
 
   const handleDaftar = async () => {
     if (!formData.nama) { toast.error("Nama wajib diisi"); return; }
-    const { error } = await supabase.from("siswa").insert({
+    if (!formData.departemen_id) { toast.error("Lembaga wajib dipilih"); return; }
+
+    // 1. Insert siswa (nis NULL)
+    const { data: siswa, error: insertErr } = await supabase.from("siswa").insert({
       nama: formData.nama,
       jenis_kelamin: formData.jenis_kelamin,
       telepon: formData.telepon || null,
@@ -48,31 +69,65 @@ export default function PSB() {
       departemen_id: formData.departemen_id || null,
       agama: "Islam",
       status: "calon",
-    } as any);
-    if (error) { toast.error(error.message); return; }
+    } as any).select("id").single();
+
+    if (insertErr || !siswa) { toast.error(insertErr?.message || "Gagal mendaftarkan"); return; }
+
+    // 2. Insert kelas_siswa if kelas selected
+    if (formData.kelas_id) {
+      await supabase.from("kelas_siswa").insert({
+        siswa_id: siswa.id,
+        kelas_id: formData.kelas_id,
+        aktif: true,
+      } as any);
+    }
+
     qc.invalidateQueries({ queryKey: ["siswa"] });
     toast.success("Calon siswa berhasil didaftarkan");
     setDialogOpen(false);
-    setFormData({ nama: "", jenis_kelamin: "L", telepon: "", alamat: "", angkatan_id: "", departemen_id: "" });
+    setFormData({ nama: "", jenis_kelamin: "L", telepon: "", alamat: "", angkatan_id: "", departemen_id: "", kelas_id: "" });
   };
 
-  const handleTerima = async (id: string, angkatanId: string | null) => {
+  const handleTerima = async (row: Record<string, unknown>) => {
+    const id = row.id as string;
+    const departemenId = row.departemen_id as string | null;
+    const angkatanId = row.angkatan_id as string | null;
+
     try {
-      // Auto-generate NIS if angkatan exists
-      let nis: string | null = null;
-      if (angkatanId) {
-        const { data, error } = await supabase.functions.invoke("generate-nis", {
-          body: { angkatan_id: angkatanId },
-        });
-        if (!error && data?.nis) nis = data.nis;
+      // Update status first
+      await supabase.from("siswa").update({ status: "diterima" } as any).eq("id", id);
+
+      // Try to generate NIS if all required fields exist
+      if (departemenId && angkatanId) {
+        // Find kelas from kelas_siswa
+        const { data: kelasSiswa } = await supabase
+          .from("kelas_siswa")
+          .select("kelas_id")
+          .eq("siswa_id", id)
+          .eq("aktif", true)
+          .single();
+
+        if (kelasSiswa?.kelas_id) {
+          try {
+            const { nis } = await generateNISViaEdgeFunction(supabase, {
+              siswa_id: id,
+              departemen_id: departemenId,
+              angkatan_id: angkatanId,
+              kelas_id: kelasSiswa.kelas_id,
+            });
+            qc.invalidateQueries({ queryKey: ["siswa"] });
+            toast.success(`Siswa diterima dengan NIS: ${nis}`);
+            return;
+          } catch (e: any) {
+            toast.warning(`Siswa diterima, tapi NIS gagal: ${e.message}`);
+          }
+        } else {
+          toast.warning("Siswa diterima, tapi kelas belum diatur sehingga NIS belum bisa dibuat");
+        }
+      } else {
+        toast.success("Siswa diterima (NIS belum dibuat — lengkapi departemen, angkatan & kelas)");
       }
-
-      const updateData: any = { status: "diterima" };
-      if (nis) updateData.nis = nis;
-
-      await supabase.from("siswa").update(updateData).eq("id", id);
       qc.invalidateQueries({ queryKey: ["siswa"] });
-      toast.success(nis ? `Siswa diterima dengan NIS: ${nis}` : "Siswa diterima");
     } catch {
       toast.error("Gagal menerima siswa");
     }
@@ -109,7 +164,7 @@ export default function PSB() {
         return (
           <div className="flex gap-1">
             {status === "calon" && (
-              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleTerima(row.id as string, row.angkatan_id as string | null); }}>
+              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleTerima(row); }}>
                 Terima
               </Button>
             )}
@@ -135,7 +190,7 @@ export default function PSB() {
           <DialogTrigger asChild>
             <Button><UserPlus className="h-4 w-4 mr-2" />Daftarkan Calon Siswa</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Formulir Pendaftaran</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div>
@@ -153,8 +208,8 @@ export default function PSB() {
                 </Select>
               </div>
               <div>
-                <Label>Lembaga/Sekolah</Label>
-                <Select value={formData.departemen_id} onValueChange={(v) => setFormData({ ...formData, departemen_id: v })}>
+                <Label>Lembaga/Sekolah *</Label>
+                <Select value={formData.departemen_id} onValueChange={(v) => setFormData({ ...formData, departemen_id: v, kelas_id: "", angkatan_id: "" })}>
                   <SelectTrigger><SelectValue placeholder="Pilih lembaga" /></SelectTrigger>
                   <SelectContent>
                     {departemenList.map((d) => <SelectItem key={d.id} value={d.id}>{d.nama}</SelectItem>)}
@@ -162,14 +217,31 @@ export default function PSB() {
                 </Select>
               </div>
               <div>
-                <Label>Angkatan</Label>
-                <Select value={formData.angkatan_id} onValueChange={(v) => setFormData({ ...formData, angkatan_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Pilih angkatan" /></SelectTrigger>
+                <Label>Kelas</Label>
+                <Select value={formData.kelas_id} onValueChange={(v) => setFormData({ ...formData, kelas_id: v })} disabled={!formData.departemen_id}>
+                  <SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
                   <SelectContent>
-                    {angkatanList.map((a) => <SelectItem key={a.id} value={a.id}>{a.nama}</SelectItem>)}
+                    {filteredKelas.map((k: any) => <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>Angkatan</Label>
+                <Select value={formData.angkatan_id} onValueChange={(v) => setFormData({ ...formData, angkatan_id: v })} disabled={!formData.departemen_id}>
+                  <SelectTrigger><SelectValue placeholder="Pilih angkatan" /></SelectTrigger>
+                  <SelectContent>
+                    {filteredAngkatan.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.nama}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {selectedDept?.npsn && selectedKelas && selectedAngkatan && (
+                <NISPreview
+                  npsn={selectedDept.npsn}
+                  namaKelas={selectedKelas.nama}
+                  namaAngkatan={selectedAngkatan.nama}
+                  estimasiUrut={1}
+                />
+              )}
               <div>
                 <Label>Telepon</Label>
                 <Input value={formData.telepon} onChange={(e) => setFormData({ ...formData, telepon: e.target.value })} />
