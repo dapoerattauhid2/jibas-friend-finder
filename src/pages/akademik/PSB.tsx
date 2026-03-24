@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { NISPreview } from "@/components/shared/NISPreview";
 import { useAngkatan, useDepartemen, useKelas } from "@/hooks/useAkademikData";
 import { generateNISViaEdgeFunction } from "@/utils/nisGenerator";
@@ -25,6 +25,7 @@ function diagnosaNIS(row: Record<string, unknown>): { alasan?: "no_dept_angkatan
 }
 
 export default function PSB() {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: angkatanList = [] } = useAngkatan();
   const { data: departemenList = [] } = useDepartemen();
@@ -32,10 +33,6 @@ export default function PSB() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [nisLoadingId, setNisLoadingId] = useState<string | null>(null);
 
-  // Edit state
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editData, setEditData] = useState<any>(null);
-  const [editSaving, setEditSaving] = useState(false);
 
   const [modePendaftaran, setModePendaftaran] = useState<"lengkap" | "cepat">("lengkap");
 
@@ -226,44 +223,6 @@ export default function PSB() {
     toast.success("Siswa diaktifkan");
   };
 
-  // ─── edit ──────────────────────────────────────────────────────────────────
-  const openEdit = (row: Record<string, unknown>) => {
-    setEditData({
-      id: row.id,
-      nama: row.nama || "",
-      jenis_kelamin: row.jenis_kelamin || "L",
-      telepon: row.telepon || "",
-      alamat: row.alamat || "",
-      angkatan_id: (row.angkatan_id as string) || "",
-      departemen_id: (row.departemen_id as string) || "",
-    });
-    setEditDialogOpen(true);
-  };
-
-  const handleEditSave = async () => {
-    if (!editData) return;
-    setEditSaving(true);
-    const { error } = await supabase
-      .from("siswa")
-      .update({
-        nama: editData.nama,
-        jenis_kelamin: editData.jenis_kelamin,
-        telepon: editData.telepon || null,
-        alamat: editData.alamat || null,
-        angkatan_id: editData.angkatan_id || null,
-        departemen_id: editData.departemen_id || null,
-      } as any)
-      .eq("id", editData.id);
-    setEditSaving(false);
-    if (error) {
-      toast.error("Gagal menyimpan: " + error.message);
-      return;
-    }
-    qc.invalidateQueries({ queryKey: ["siswa"] });
-    toast.success("Data berhasil diperbarui");
-    setEditDialogOpen(false);
-    setEditData(null);
-  };
 
   // ─── verifikasi ────────────────────────────────────────────────────────────
   const handleVerifikasi = async (row: Record<string, unknown>) => {
@@ -279,14 +238,6 @@ export default function PSB() {
     qc.invalidateQueries({ queryKey: ["siswa"] });
     toast.success(`${row.nama} berhasil diverifikasi`);
   };
-
-  // ─── edit filtered lists ──────────────────────────────────────────────────
-  const editFilteredKelas = kelasList.filter(
-    (k: any) => !editData?.departemen_id || k.departemen_id === editData.departemen_id
-  );
-  const editFilteredAngkatan = angkatanList.filter(
-    (a: any) => !editData?.departemen_id || a.departemen_id === editData.departemen_id
-  );
 
   // ─── columns ───────────────────────────────────────────────────────────────
   const columns: DataTableColumn<Record<string, unknown>>[] = [
@@ -345,8 +296,9 @@ export default function PSB() {
         return (
           <div className="flex gap-1 flex-wrap">
             {/* Edit */}
+            {/* Edit — navigasi ke halaman edit siswa */}
             <Button size="sm" variant="outline"
-              onClick={(e) => { e.stopPropagation(); openEdit(row); }}
+              onClick={(e) => { e.stopPropagation(); navigate(`/akademik/siswa/${row.id}/edit`); }}
               title="Edit data"
             >
               <Pencil className="h-3 w-3" />
@@ -546,63 +498,6 @@ export default function PSB() {
         pageSize={20}
       />
 
-      {/* ── Edit Dialog ── */}
-      <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditData(null); }}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Edit Data Calon Siswa</DialogTitle></DialogHeader>
-          {editData && (
-            <div className="space-y-4">
-              <div>
-                <Label>Nama Lengkap *</Label>
-                <Input value={editData.nama} onChange={(e) => setEditData({ ...editData, nama: e.target.value })} />
-              </div>
-              <div>
-                <Label>Jenis Kelamin</Label>
-                <Select value={editData.jenis_kelamin} onValueChange={(v) => setEditData({ ...editData, jenis_kelamin: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="L">Laki-laki</SelectItem>
-                    <SelectItem value="P">Perempuan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Lembaga/Sekolah</Label>
-                <Select value={editData.departemen_id} onValueChange={(v) => setEditData({ ...editData, departemen_id: v, angkatan_id: "" })}>
-                  <SelectTrigger><SelectValue placeholder="Pilih lembaga" /></SelectTrigger>
-                  <SelectContent>
-                    {departemenList.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>{d.nama}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Angkatan</Label>
-                <Select value={editData.angkatan_id} onValueChange={(v) => setEditData({ ...editData, angkatan_id: v })} disabled={!editData.departemen_id}>
-                  <SelectTrigger><SelectValue placeholder="Pilih angkatan" /></SelectTrigger>
-                  <SelectContent>
-                    {editFilteredAngkatan.map((a: any) => (
-                      <SelectItem key={a.id} value={a.id}>{a.nama}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Telepon</Label>
-                <Input value={editData.telepon} onChange={(e) => setEditData({ ...editData, telepon: e.target.value })} />
-              </div>
-              <div>
-                <Label>Alamat</Label>
-                <Textarea value={editData.alamat} onChange={(e) => setEditData({ ...editData, alamat: e.target.value })} />
-              </div>
-              <Button className="w-full" onClick={handleEditSave} disabled={editSaving}>
-                {editSaving ? "Menyimpan..." : "Simpan Perubahan"}
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
