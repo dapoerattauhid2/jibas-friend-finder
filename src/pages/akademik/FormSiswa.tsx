@@ -62,7 +62,7 @@ export default function FormSiswa() {
   const updateSiswa = useUpdateSiswa();
   const { data: siswa } = useSiswaDetail(id || "");
   const { data: orangtua } = useSiswaDetailOrangtua(id || "");
-  const { data: angkatanList = [] } = useAngkatan();
+  const { data: allAngkatanList = [] } = useAngkatan();
   const { data: departemenList = [] } = useDepartemen();
   const { data: tahunAjaranList = [] } = useTahunAjaran();
 
