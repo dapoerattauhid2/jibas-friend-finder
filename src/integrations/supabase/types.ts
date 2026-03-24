@@ -2868,6 +2868,7 @@ export type Database = {
           tanggal_lahir: string | null
           telepon: string | null
           tempat_lahir: string | null
+          terverifikasi: boolean
         }
         Insert: {
           agama?: string | null
@@ -2885,6 +2886,7 @@ export type Database = {
           tanggal_lahir?: string | null
           telepon?: string | null
           tempat_lahir?: string | null
+          terverifikasi?: boolean
         }
         Update: {
           agama?: string | null
@@ -2902,6 +2904,7 @@ export type Database = {
           tanggal_lahir?: string | null
           telepon?: string | null
           tempat_lahir?: string | null
+          terverifikasi?: boolean
         }
         Relationships: [
           {

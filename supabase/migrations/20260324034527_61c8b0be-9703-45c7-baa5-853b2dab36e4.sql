@@ -1,0 +1,1 @@
+ALTER TABLE public.siswa ADD COLUMN IF NOT EXISTS terverifikasi boolean NOT NULL DEFAULT false;

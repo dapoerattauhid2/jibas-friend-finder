@@ -10,10 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { NISPreview } from "@/components/shared/NISPreview";
 import { useAngkatan, useDepartemen, useKelas } from "@/hooks/useAkademikData";
 import { generateNISViaEdgeFunction } from "@/utils/nisGenerator";
-import { UserPlus, Users, UserCheck, Clock, AlertTriangle, RefreshCw } from "lucide-react";
+import { UserPlus, Users, UserCheck, Clock, AlertTriangle, RefreshCw, Pencil, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 function diagnosaNIS(row: Record<string, unknown>): { alasan?: "no_dept_angkatan" | "no_kelas" } {
@@ -31,8 +32,11 @@ export default function PSB() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [nisLoadingId, setNisLoadingId] = useState<string | null>(null);
 
-  // "lengkap" = kelas & angkatan wajib, NIS langsung dibuat saat Terima
-  // "cepat"   = kelas & angkatan opsional, NIS dibuat belakangan
+  // Edit state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editData, setEditData] = useState<any>(null);
+  const [editSaving, setEditSaving] = useState(false);
+
   const [modePendaftaran, setModePendaftaran] = useState<"lengkap" | "cepat">("lengkap");
 
   const [formData, setFormData] = useState({
@@ -222,6 +226,68 @@ export default function PSB() {
     toast.success("Siswa diaktifkan");
   };
 
+  // ─── edit ──────────────────────────────────────────────────────────────────
+  const openEdit = (row: Record<string, unknown>) => {
+    setEditData({
+      id: row.id,
+      nama: row.nama || "",
+      jenis_kelamin: row.jenis_kelamin || "L",
+      telepon: row.telepon || "",
+      alamat: row.alamat || "",
+      angkatan_id: (row.angkatan_id as string) || "",
+      departemen_id: (row.departemen_id as string) || "",
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editData) return;
+    setEditSaving(true);
+    const { error } = await supabase
+      .from("siswa")
+      .update({
+        nama: editData.nama,
+        jenis_kelamin: editData.jenis_kelamin,
+        telepon: editData.telepon || null,
+        alamat: editData.alamat || null,
+        angkatan_id: editData.angkatan_id || null,
+        departemen_id: editData.departemen_id || null,
+      } as any)
+      .eq("id", editData.id);
+    setEditSaving(false);
+    if (error) {
+      toast.error("Gagal menyimpan: " + error.message);
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["siswa"] });
+    toast.success("Data berhasil diperbarui");
+    setEditDialogOpen(false);
+    setEditData(null);
+  };
+
+  // ─── verifikasi ────────────────────────────────────────────────────────────
+  const handleVerifikasi = async (row: Record<string, unknown>) => {
+    const id = row.id as string;
+    const { error } = await supabase
+      .from("siswa")
+      .update({ terverifikasi: true } as any)
+      .eq("id", id);
+    if (error) {
+      toast.error("Gagal memverifikasi: " + error.message);
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["siswa"] });
+    toast.success(`${row.nama} berhasil diverifikasi`);
+  };
+
+  // ─── edit filtered lists ──────────────────────────────────────────────────
+  const editFilteredKelas = kelasList.filter(
+    (k: any) => !editData?.departemen_id || k.departemen_id === editData.departemen_id
+  );
+  const editFilteredAngkatan = angkatanList.filter(
+    (a: any) => !editData?.departemen_id || a.departemen_id === editData.departemen_id
+  );
+
   // ─── columns ───────────────────────────────────────────────────────────────
   const columns: DataTableColumn<Record<string, unknown>>[] = [
     { key: "nama", label: "Nama", sortable: true },
@@ -250,22 +316,53 @@ export default function PSB() {
     { key: "angkatan", label: "Angkatan", render: (v: any) => v?.nama || "-" },
     {
       key: "status", label: "Status",
-      render: (v) => {
+      render: (v, row) => {
         const s = v as string;
         const colors: Record<string, string> = {
           calon: "bg-warning/15 text-warning border-warning/30",
           diterima: "bg-info/15 text-info border-info/30",
         };
-        return <span className={`px-2 py-0.5 rounded-full text-xs border ${colors[s] || ""}`}>{s}</span>;
+        const verified = row.terverifikasi as boolean;
+        return (
+          <div className="flex items-center gap-1.5">
+            <span className={`px-2 py-0.5 rounded-full text-xs border ${colors[s] || ""}`}>{s}</span>
+            {verified && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border bg-success/15 text-success border-success/30" title="Sudah diverifikasi">
+                <CheckCircle2 className="h-3 w-3" />
+                Verified
+              </span>
+            )}
+          </div>
+        );
       },
     },
     {
-      key: "id", label: "Aksi", className: "w-48",
+      key: "id", label: "Aksi", className: "w-60",
       render: (_, row) => {
         const status = row.status as string;
         const loading = nisLoadingId === (row.id as string);
+        const verified = row.terverifikasi as boolean;
         return (
           <div className="flex gap-1 flex-wrap">
+            {/* Edit */}
+            <Button size="sm" variant="outline"
+              onClick={(e) => { e.stopPropagation(); openEdit(row); }}
+              title="Edit data"
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
+
+            {/* Verifikasi */}
+            {!verified && (
+              <Button size="sm" variant="outline"
+                className="border-success/50 text-success hover:bg-success/10"
+                onClick={(e) => { e.stopPropagation(); handleVerifikasi(row); }}
+                title="Verifikasi data"
+              >
+                <ShieldCheck className="h-3 w-3 mr-1" />Verifikasi
+              </Button>
+            )}
+
             {status === "calon" && (
               <Button size="sm" variant="outline" disabled={loading}
                 onClick={(e) => { e.stopPropagation(); handleTerima(row); }}
@@ -336,22 +433,13 @@ export default function PSB() {
             </div>
 
             <div className="space-y-4">
-              {/* Nama */}
               <div>
                 <Label>Nama Lengkap *</Label>
-                <Input
-                  value={formData.nama}
-                  onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                />
+                <Input value={formData.nama} onChange={(e) => setFormData({ ...formData, nama: e.target.value })} />
               </div>
-
-              {/* Jenis kelamin */}
               <div>
                 <Label>Jenis Kelamin</Label>
-                <Select
-                  value={formData.jenis_kelamin}
-                  onValueChange={(v) => setFormData({ ...formData, jenis_kelamin: v })}
-                >
+                <Select value={formData.jenis_kelamin} onValueChange={(v) => setFormData({ ...formData, jenis_kelamin: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="L">Laki-laki</SelectItem>
@@ -359,16 +447,9 @@ export default function PSB() {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Lembaga */}
               <div>
                 <Label>Lembaga/Sekolah *</Label>
-                <Select
-                  value={formData.departemen_id}
-                  onValueChange={(v) =>
-                    setFormData({ ...formData, departemen_id: v, kelas_id: "", angkatan_id: "" })
-                  }
-                >
+                <Select value={formData.departemen_id} onValueChange={(v) => setFormData({ ...formData, departemen_id: v, kelas_id: "", angkatan_id: "" })}>
                   <SelectTrigger><SelectValue placeholder="Pilih lembaga" /></SelectTrigger>
                   <SelectContent>
                     {departemenList.map((d) => (
@@ -383,21 +464,14 @@ export default function PSB() {
                   </p>
                 )}
               </div>
-
-              {/* Kelas */}
               <div>
                 <Label className="flex items-center gap-1.5">
                   Kelas
                   {modePendaftaran === "lengkap"
                     ? <span className="text-destructive">*</span>
-                    : <span className="text-xs font-normal text-muted-foreground">(opsional)</span>
-                  }
+                    : <span className="text-xs font-normal text-muted-foreground">(opsional)</span>}
                 </Label>
-                <Select
-                  value={formData.kelas_id}
-                  onValueChange={(v) => setFormData({ ...formData, kelas_id: v })}
-                  disabled={!formData.departemen_id}
-                >
+                <Select value={formData.kelas_id} onValueChange={(v) => setFormData({ ...formData, kelas_id: v })} disabled={!formData.departemen_id}>
                   <SelectTrigger><SelectValue placeholder="Pilih kelas" /></SelectTrigger>
                   <SelectContent>
                     {filteredKelas.map((k: any) => (
@@ -406,21 +480,14 @@ export default function PSB() {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Angkatan */}
               <div>
                 <Label className="flex items-center gap-1.5">
                   Angkatan
                   {modePendaftaran === "lengkap"
                     ? <span className="text-destructive">*</span>
-                    : <span className="text-xs font-normal text-muted-foreground">(opsional)</span>
-                  }
+                    : <span className="text-xs font-normal text-muted-foreground">(opsional)</span>}
                 </Label>
-                <Select
-                  value={formData.angkatan_id}
-                  onValueChange={(v) => setFormData({ ...formData, angkatan_id: v })}
-                  disabled={!formData.departemen_id}
-                >
+                <Select value={formData.angkatan_id} onValueChange={(v) => setFormData({ ...formData, angkatan_id: v })} disabled={!formData.departemen_id}>
                   <SelectTrigger><SelectValue placeholder="Pilih angkatan" /></SelectTrigger>
                   <SelectContent>
                     {filteredAngkatan.map((a: any) => (
@@ -430,7 +497,6 @@ export default function PSB() {
                 </Select>
               </div>
 
-              {/* NIS Preview */}
               {canPreviewNIS && (
                 <NISPreview
                   npsn={selectedDept!.npsn}
@@ -440,7 +506,6 @@ export default function PSB() {
                 />
               )}
 
-              {/* Info mode cepat */}
               {modePendaftaran === "cepat" && (
                 <p className="text-xs text-muted-foreground bg-muted/40 rounded-md px-3 py-2 leading-relaxed">
                   NIS akan dibuat setelah kelas dan angkatan dilengkapi di halaman Data Siswa,
@@ -448,20 +513,13 @@ export default function PSB() {
                 </p>
               )}
 
-              {/* Telepon & Alamat */}
               <div>
                 <Label>Telepon</Label>
-                <Input
-                  value={formData.telepon}
-                  onChange={(e) => setFormData({ ...formData, telepon: e.target.value })}
-                />
+                <Input value={formData.telepon} onChange={(e) => setFormData({ ...formData, telepon: e.target.value })} />
               </div>
               <div>
                 <Label>Alamat</Label>
-                <Textarea
-                  value={formData.alamat}
-                  onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
-                />
+                <Textarea value={formData.alamat} onChange={(e) => setFormData({ ...formData, alamat: e.target.value })} />
               </div>
 
               <Button className="w-full" onClick={handleDaftar}>Daftarkan</Button>
@@ -487,6 +545,64 @@ export default function PSB() {
         loading={isLoading}
         pageSize={20}
       />
+
+      {/* ── Edit Dialog ── */}
+      <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditData(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit Data Calon Siswa</DialogTitle></DialogHeader>
+          {editData && (
+            <div className="space-y-4">
+              <div>
+                <Label>Nama Lengkap *</Label>
+                <Input value={editData.nama} onChange={(e) => setEditData({ ...editData, nama: e.target.value })} />
+              </div>
+              <div>
+                <Label>Jenis Kelamin</Label>
+                <Select value={editData.jenis_kelamin} onValueChange={(v) => setEditData({ ...editData, jenis_kelamin: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="L">Laki-laki</SelectItem>
+                    <SelectItem value="P">Perempuan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Lembaga/Sekolah</Label>
+                <Select value={editData.departemen_id} onValueChange={(v) => setEditData({ ...editData, departemen_id: v, angkatan_id: "" })}>
+                  <SelectTrigger><SelectValue placeholder="Pilih lembaga" /></SelectTrigger>
+                  <SelectContent>
+                    {departemenList.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>{d.nama}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Angkatan</Label>
+                <Select value={editData.angkatan_id} onValueChange={(v) => setEditData({ ...editData, angkatan_id: v })} disabled={!editData.departemen_id}>
+                  <SelectTrigger><SelectValue placeholder="Pilih angkatan" /></SelectTrigger>
+                  <SelectContent>
+                    {editFilteredAngkatan.map((a: any) => (
+                      <SelectItem key={a.id} value={a.id}>{a.nama}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Telepon</Label>
+                <Input value={editData.telepon} onChange={(e) => setEditData({ ...editData, telepon: e.target.value })} />
+              </div>
+              <div>
+                <Label>Alamat</Label>
+                <Textarea value={editData.alamat} onChange={(e) => setEditData({ ...editData, alamat: e.target.value })} />
+              </div>
+              <Button className="w-full" onClick={handleEditSave} disabled={editSaving}>
+                {editSaving ? "Menyimpan..." : "Simpan Perubahan"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
