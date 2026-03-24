@@ -33,10 +33,6 @@ export default function PSB() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [nisLoadingId, setNisLoadingId] = useState<string | null>(null);
 
-  // Edit state
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editData, setEditData] = useState<any>(null);
-  const [editSaving, setEditSaving] = useState(false);
 
   const [modePendaftaran, setModePendaftaran] = useState<"lengkap" | "cepat">("lengkap");
 
