@@ -15,22 +15,20 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // GET: return list of active departemen
+  // GET: return list of active departemen + angkatan
   if (req.method === "GET") {
-    const { data, error } = await supabase
-      .from("departemen")
-      .select("id, nama, kode")
-      .eq("aktif", true)
-      .order("nama");
+    const [deptRes, angkatanRes] = await Promise.all([
+      supabase.from("departemen").select("id, nama, kode").eq("aktif", true).order("nama"),
+      supabase.from("angkatan").select("id, nama, departemen_id").eq("aktif", true).order("nama", { ascending: false }),
+    ]);
 
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (deptRes.error) {
+      return new Response(JSON.stringify({ error: deptRes.error.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ departemen: data }), {
+    return new Response(JSON.stringify({ departemen: deptRes.data, angkatan: angkatanRes.data || [] }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -40,9 +38,11 @@ Deno.serve(async (req) => {
     try {
       const body = await req.json();
 
-      // Validate required fields
       const nama = (body.nama || "").trim();
       const departemen_id = (body.departemen_id || "").trim();
+      const angkatan_id = (body.angkatan_id || "").trim() || null;
+      const jenis_pendaftaran = ["baru", "pindahan", "alumni_internal"].includes(body.jenis_pendaftaran)
+        ? body.jenis_pendaftaran : "baru";
 
       if (!nama || nama.length < 2 || nama.length > 200) {
         return new Response(
@@ -60,11 +60,7 @@ Deno.serve(async (req) => {
 
       // Validate departemen exists
       const { data: dept } = await supabase
-        .from("departemen")
-        .select("id")
-        .eq("id", departemen_id)
-        .eq("aktif", true)
-        .single();
+        .from("departemen").select("id").eq("id", departemen_id).eq("aktif", true).single();
 
       if (!dept) {
         return new Response(
@@ -88,6 +84,7 @@ Deno.serve(async (req) => {
           agama: "Islam",
           status: "calon",
           departemen_id,
+          angkatan_id,
         })
         .select("id")
         .single();
@@ -99,7 +96,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Insert siswa_detail (parent info)
+      // Insert siswa_detail (parent info + pendaftaran info)
       const { error: detailError } = await supabase
         .from("siswa_detail")
         .insert({
@@ -110,10 +107,13 @@ Deno.serve(async (req) => {
           pekerjaan_ibu: (body.pekerjaan_ibu || "").trim().slice(0, 100) || null,
           telepon_ortu: (body.telepon_ortu || "").trim().slice(0, 20) || null,
           alamat_ortu: (body.alamat_ortu || "").trim().slice(0, 500) || null,
+          jenis_pendaftaran,
+          asal_sekolah: jenis_pendaftaran !== "baru" ? (body.asal_sekolah || "").trim().slice(0, 200) || null : null,
+          kelas_terakhir: jenis_pendaftaran !== "baru" ? (body.kelas_terakhir || "").trim().slice(0, 50) || null : null,
+          alasan_pindah: jenis_pendaftaran === "pindahan" ? (body.alasan_pindah || "").trim().slice(0, 500) || null : null,
         });
 
       if (detailError) {
-        // Rollback siswa if detail fails
         await supabase.from("siswa").delete().eq("id", siswa.id);
         return new Response(
           JSON.stringify({ error: detailError.message }),
@@ -134,7 +134,6 @@ Deno.serve(async (req) => {
   }
 
   return new Response(JSON.stringify({ error: "Method not allowed" }), {
-    status: 405,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });

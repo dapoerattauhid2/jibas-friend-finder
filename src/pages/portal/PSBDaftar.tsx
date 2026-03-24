@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,31 +11,49 @@ import { FormSection } from "@/components/shared/FormSection";
 import { UserPlus, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-interface Departemen {
-  id: string;
-  nama: string;
-  kode: string | null;
-}
+interface Departemen { id: string; nama: string; kode: string | null; }
+interface Angkatan { id: string; nama: string; departemen_id: string | null; }
+
+const JENIS_OPTIONS = [
+  { value: "baru", label: "Siswa Baru" },
+  { value: "pindahan", label: "Siswa Pindahan" },
+  { value: "alumni_internal", label: "Alumni Internal (Naik Jenjang)" },
+];
+
+const initialForm = {
+  nama: "", jenis_kelamin: "L", tempat_lahir: "", tanggal_lahir: "",
+  alamat: "", telepon: "", departemen_id: "", angkatan_id: "",
+  jenis_pendaftaran: "baru",
+  asal_sekolah: "", kelas_terakhir: "", alasan_pindah: "",
+  nama_ayah: "", nama_ibu: "", pekerjaan_ayah: "", pekerjaan_ibu: "",
+  telepon_ortu: "", alamat_ortu: "",
+};
 
 export default function PSBDaftar() {
   const [departemenList, setDepartemenList] = useState<Departemen[]>([]);
+  const [allAngkatan, setAllAngkatan] = useState<Angkatan[]>([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [form, setForm] = useState({
-    nama: "", jenis_kelamin: "L", tempat_lahir: "", tanggal_lahir: "",
-    alamat: "", telepon: "", departemen_id: "",
-    nama_ayah: "", nama_ibu: "", pekerjaan_ayah: "", pekerjaan_ibu: "",
-    telepon_ortu: "", alamat_ortu: "",
-  });
+  const [form, setForm] = useState({ ...initialForm });
 
   useEffect(() => {
     supabase.functions.invoke("psb-daftar", { method: "GET" }).then(({ data, error }) => {
       if (!error && data?.departemen) setDepartemenList(data.departemen);
+      if (!error && data?.angkatan) setAllAngkatan(data.angkatan);
     });
   }, []);
 
+  const angkatanList = useMemo(
+    () => allAngkatan.filter(a => !form.departemen_id || a.departemen_id === form.departemen_id),
+    [allAngkatan, form.departemen_id]
+  );
+
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [key]: e.target.value }));
+
+  const handleDeptChange = (v: string) => {
+    setForm(f => ({ ...f, departemen_id: v, angkatan_id: "" }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,8 +62,7 @@ export default function PSBDaftar() {
 
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("psb-daftar", {
-      method: "POST",
-      body: form,
+      method: "POST", body: form,
     });
 
     if (error || data?.error) {
@@ -70,7 +87,7 @@ export default function PSBDaftar() {
               Silakan tunggu informasi selanjutnya dari pihak sekolah.
             </p>
             <div className="pt-4 space-y-2">
-              <Button onClick={() => { setSuccess(false); setForm({ nama: "", jenis_kelamin: "L", tempat_lahir: "", tanggal_lahir: "", alamat: "", telepon: "", departemen_id: "", nama_ayah: "", nama_ibu: "", pekerjaan_ayah: "", pekerjaan_ibu: "", telepon_ortu: "", alamat_ortu: "" }); }} variant="outline" className="w-full">
+              <Button onClick={() => { setSuccess(false); setForm({ ...initialForm }); }} variant="outline" className="w-full">
                 Daftarkan Siswa Lain
               </Button>
               <Link to="/portal/login">
@@ -82,6 +99,8 @@ export default function PSBDaftar() {
       </div>
     );
   }
+
+  const showPindahanFields = form.jenis_pendaftaran === "pindahan" || form.jenis_pendaftaran === "alumni_internal";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 p-4 py-8">
@@ -104,6 +123,47 @@ export default function PSBDaftar() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Jenis Pendaftaran */}
+              <FormSection title="Jenis Pendaftaran" description="Pilih jenis pendaftaran siswa">
+                <div>
+                  <Label>Jenis Pendaftaran *</Label>
+                  <Select value={form.jenis_pendaftaran} onValueChange={v => setForm(f => ({ ...f, jenis_pendaftaran: v, asal_sekolah: "", kelas_terakhir: "", alasan_pindah: "" }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {JENIS_OPTIONS.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {form.jenis_pendaftaran === "alumni_internal" && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Untuk siswa alumni dari jenjang lain di yayasan yang sama (misal: SD → SMP).
+                    </p>
+                  )}
+                </div>
+
+                {showPindahanFields && (
+                  <>
+                    <div>
+                      <Label>{form.jenis_pendaftaran === "alumni_internal" ? "Asal Sekolah / Jenjang" : "Asal Sekolah"}</Label>
+                      <Input value={form.asal_sekolah} onChange={set("asal_sekolah")}
+                        placeholder={form.jenis_pendaftaran === "alumni_internal" ? "Contoh: SDITA At-Tauhid" : "Nama sekolah asal"} />
+                    </div>
+                    <div>
+                      <Label>Kelas Terakhir</Label>
+                      <Input value={form.kelas_terakhir} onChange={set("kelas_terakhir")} placeholder="Contoh: 6A" />
+                    </div>
+                    {form.jenis_pendaftaran === "pindahan" && (
+                      <div>
+                        <Label>Alasan Pindah</Label>
+                        <Textarea value={form.alasan_pindah} onChange={set("alasan_pindah")} placeholder="Alasan kepindahan siswa" />
+                      </div>
+                    )}
+                  </>
+                )}
+              </FormSection>
+
+              {/* Data Siswa */}
               <FormSection title="Data Calon Siswa" description="Informasi identitas calon siswa">
                 <div>
                   <Label>Nama Lengkap *</Label>
@@ -122,7 +182,7 @@ export default function PSBDaftar() {
                   </div>
                   <div>
                     <Label>Lembaga/Sekolah *</Label>
-                    <Select value={form.departemen_id} onValueChange={v => setForm(f => ({ ...f, departemen_id: v }))}>
+                    <Select value={form.departemen_id} onValueChange={handleDeptChange}>
                       <SelectTrigger><SelectValue placeholder="Pilih lembaga" /></SelectTrigger>
                       <SelectContent>
                         {departemenList.map(d => (
@@ -131,6 +191,19 @@ export default function PSBDaftar() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+                <div>
+                  <Label>Angkatan</Label>
+                  <Select value={form.angkatan_id} onValueChange={v => setForm(f => ({ ...f, angkatan_id: v }))} disabled={!form.departemen_id}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={form.departemen_id ? "Pilih angkatan" : "Pilih lembaga dulu"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {angkatanList.map(a => (
+                        <SelectItem key={a.id} value={a.id}>{a.nama}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -152,6 +225,7 @@ export default function PSBDaftar() {
                 </div>
               </FormSection>
 
+              {/* Data Ortu */}
               <FormSection title="Data Orang Tua / Wali" description="Informasi orang tua atau wali siswa">
                 <div className="grid grid-cols-2 gap-4">
                   <div>

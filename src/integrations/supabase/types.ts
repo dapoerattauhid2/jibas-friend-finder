@@ -2937,7 +2937,11 @@ export type Database = {
       siswa_detail: {
         Row: {
           alamat_ortu: string | null
+          alasan_pindah: string | null
+          asal_sekolah: string | null
           id: string
+          jenis_pendaftaran: string | null
+          kelas_terakhir: string | null
           nama_ayah: string | null
           nama_ibu: string | null
           pekerjaan_ayah: string | null
@@ -2947,7 +2951,11 @@ export type Database = {
         }
         Insert: {
           alamat_ortu?: string | null
+          alasan_pindah?: string | null
+          asal_sekolah?: string | null
           id?: string
+          jenis_pendaftaran?: string | null
+          kelas_terakhir?: string | null
           nama_ayah?: string | null
           nama_ibu?: string | null
           pekerjaan_ayah?: string | null
@@ -2957,7 +2965,11 @@ export type Database = {
         }
         Update: {
           alamat_ortu?: string | null
+          alasan_pindah?: string | null
+          asal_sekolah?: string | null
           id?: string
+          jenis_pendaftaran?: string | null
+          kelas_terakhir?: string | null
           nama_ayah?: string | null
           nama_ibu?: string | null
           pekerjaan_ayah?: string | null
