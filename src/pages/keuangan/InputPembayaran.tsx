@@ -137,8 +137,8 @@ export default function InputPembayaran() {
   });
 
   const { data: pembayaranSekali } = useQuery({
-    queryKey: ["cek_sekali", selectedSiswa?.id, jenisId, effectiveTahunAjaranId],
-    enabled: !!selectedSiswa && !!jenisId && isSekali,
+    queryKey: ["cek_sekali", selectedSiswa?.id, jenisId, effectiveTahunAjaranId, tarifNominal],
+    enabled: !!selectedSiswa && !!jenisId && isSekali && tarifNominal != null,
     queryFn: async () => {
       let q = supabase
         .from("pembayaran")
