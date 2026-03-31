@@ -199,6 +199,8 @@ const App = () => (
                 <Route path="/pengaturan/ortu" element={<ManajemenOrtu />} />
                 <Route path="/pengaturan/notifikasi" element={<NotifikasiGateway />} />
                 <Route path="/pengaturan/backup" element={<BackupExport />} />
+                <Route path="/pengaturan/migrasi-data" element={<MigrasiData />} />
+                <Route path="/pengaturan/cek-kesehatan" element={<CekKesehatan />} />
                 <Route path="/pengaturan/:tab" element={<Pengaturan />} />
               </Route>
             </Route>
