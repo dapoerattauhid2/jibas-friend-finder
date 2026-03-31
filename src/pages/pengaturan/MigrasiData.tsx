@@ -301,10 +301,14 @@ function TabJurnal() {
 
     for (let i = 0; i < groups.length; i++) {
       const g = groups[i];
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const rawDeptId = g.rows[0]?.departemen_id?.toString().trim();
+      const departemenId = rawDeptId && UUID_RE.test(rawDeptId) ? rawDeptId : null;
       const { data: jrn, error: jErr } = await supabase.from("jurnal").insert({
         nomor: g.nomor, tanggal: g.tanggal, keterangan: g.keterangan,
         total_debit: g.totalDebit, total_kredit: g.totalKredit, status: "posted",
         referensi: g.rows[0]?.referensi_dokumen || null,
+        departemen_id: departemenId,
       }).select("id").single();
 
       if (jErr) { toast.error(`Error jurnal ${g.nomor}: ${jErr.message}`); continue; }
