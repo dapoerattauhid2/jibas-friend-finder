@@ -41,9 +41,12 @@ export type Database = {
           jenis: string
           keterangan: string | null
           kode: string
+          kode_isak35: string | null
           nama: string
+          pos_isak35: string | null
           saldo_awal: number | null
           saldo_normal: string
+          urutan_isak35: number | null
         }
         Insert: {
           aktif?: boolean | null
@@ -53,9 +56,12 @@ export type Database = {
           jenis: string
           keterangan?: string | null
           kode: string
+          kode_isak35?: string | null
           nama: string
+          pos_isak35?: string | null
           saldo_awal?: number | null
           saldo_normal: string
+          urutan_isak35?: number | null
         }
         Update: {
           aktif?: boolean | null
@@ -65,9 +71,12 @@ export type Database = {
           jenis?: string
           keterangan?: string | null
           kode?: string
+          kode_isak35?: string | null
           nama?: string
+          pos_isak35?: string | null
           saldo_awal?: number | null
           saldo_normal?: string
+          urutan_isak35?: number | null
         }
         Relationships: [
           {
@@ -132,6 +141,67 @@ export type Database = {
           },
           {
             foreignKeyName: "angkatan_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["departemen_id"]
+          },
+        ]
+      }
+      aset_tetap: {
+        Row: {
+          aktif: boolean | null
+          created_at: string | null
+          created_by: string | null
+          departemen_id: string | null
+          harga_perolehan: number
+          id: string
+          jenis_aset: string
+          keterangan: string | null
+          tanggal_perolehan: string
+          umur_ekonomis_bulan: number
+        }
+        Insert: {
+          aktif?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          departemen_id?: string | null
+          harga_perolehan: number
+          id?: string
+          jenis_aset: string
+          keterangan?: string | null
+          tanggal_perolehan: string
+          umur_ekonomis_bulan: number
+        }
+        Update: {
+          aktif?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          departemen_id?: string | null
+          harga_perolehan?: number
+          id?: string
+          jenis_aset?: string
+          keterangan?: string | null
+          tanggal_perolehan?: string
+          umur_ekonomis_bulan?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aset_tetap_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "departemen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aset_tetap_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_rekap_keuangan_lembaga"
+            referencedColumns: ["departemen_id"]
+          },
+          {
+            foreignKeyName: "aset_tetap_departemen_id_fkey"
             columns: ["departemen_id"]
             isOneToOne: false
             referencedRelation: "v_tagihan_belum_bayar"
@@ -2726,6 +2796,59 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tagihan_belum_bayar"
             referencedColumns: ["tahun_ajaran_id"]
+          },
+        ]
+      }
+      saldo_awal_isak35: {
+        Row: {
+          akun_id: string | null
+          departemen_id: string | null
+          id: string
+          saldo: number | null
+          tahun: number
+        }
+        Insert: {
+          akun_id?: string | null
+          departemen_id?: string | null
+          id?: string
+          saldo?: number | null
+          tahun: number
+        }
+        Update: {
+          akun_id?: string | null
+          departemen_id?: string | null
+          id?: string
+          saldo?: number | null
+          tahun?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saldo_awal_isak35_akun_id_fkey"
+            columns: ["akun_id"]
+            isOneToOne: false
+            referencedRelation: "akun_rekening"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saldo_awal_isak35_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "departemen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saldo_awal_isak35_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_rekap_keuangan_lembaga"
+            referencedColumns: ["departemen_id"]
+          },
+          {
+            foreignKeyName: "saldo_awal_isak35_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["departemen_id"]
           },
         ]
       }
