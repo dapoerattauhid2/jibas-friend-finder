@@ -52,20 +52,17 @@ export default function LaporanPosisiKeuangan() {
               <h3 className="font-bold text-sm uppercase tracking-wider">ASET</h3>
               <div className="space-y-1">
                 <p className="font-medium text-sm">Aset Lancar:</p>
-                <Row label="Kas dan Setara Kas" value={data.asetLancar.kas} indent />
-                <Row label="Piutang" value={data.asetLancar.piutang} indent />
-                <Row label="Investasi Jangka Pendek" value={data.asetLancar.invJP} indent />
-                <Row label="Persediaan" value={data.asetLancar.persediaan} indent />
-                <Row label="Aset Lancar Lain" value={data.asetLancar.lainnya} indent />
+                {data.asetLancarItems.filter(a => a.saldo !== 0).map(a => (
+                  <Row key={a.akun_id} label={a.nama} value={a.saldo} indent />
+                ))}
                 <Divider />
                 <Row label="Total Aset Lancar" value={data.totalAL} bold />
               </div>
               <div className="space-y-1">
                 <p className="font-medium text-sm">Aset Tidak Lancar:</p>
-                <Row label="Properti Investasi" value={data.asetTL.properti} indent />
-                <Row label="Investasi Jangka Panjang" value={data.asetTL.invJG} indent />
-                <Row label="Aset Tetap" value={data.asetTL.asetTetap} indent />
-                <Row label="Akm. Penyusutan Aset Tetap" value={data.asetTL.akmPenyusutan} indent />
+                {data.asetTidakLancarItems.filter(a => a.saldo !== 0).map(a => (
+                  <Row key={a.akun_id} label={a.nama} value={a.saldo} indent />
+                ))}
                 <Divider />
                 <Row label="Total Aset Tidak Lancar" value={data.totalATL} bold />
               </div>
@@ -76,24 +73,31 @@ export default function LaporanPosisiKeuangan() {
               <h3 className="font-bold text-sm uppercase tracking-wider mt-6">LIABILITAS</h3>
               <div className="space-y-1">
                 <p className="font-medium text-sm">Liabilitas Jangka Pendek:</p>
-                <Row label="Pendapatan Diterima Dimuka" value={data.liabJP.pdd} indent />
-                <Row label="Utang Jangka Pendek" value={data.liabJP.utangJP} indent />
+                {data.liabJPItems.filter(a => a.saldo !== 0).map(a => (
+                  <Row key={a.akun_id} label={a.nama} value={a.saldo} indent />
+                ))}
                 <Divider />
                 <Row label="Total Liabilitas Jangka Pendek" value={data.totalLJP} bold />
               </div>
-              <div className="space-y-1">
-                <p className="font-medium text-sm">Liabilitas Jangka Panjang:</p>
-                <Row label="Utang Jangka Panjang" value={data.liabJG.utangJG} indent />
-                <Row label="Liabilitas Imbalan Kerja" value={data.liabJG.lik} indent />
-                <Divider />
-                <Row label="Total Liabilitas Jangka Panjang" value={data.totalLJG} bold />
-              </div>
+              {data.liabJGItems.length > 0 && (
+                <div className="space-y-1">
+                  <p className="font-medium text-sm">Liabilitas Jangka Panjang:</p>
+                  {data.liabJGItems.filter(a => a.saldo !== 0).map(a => (
+                    <Row key={a.akun_id} label={a.nama} value={a.saldo} indent />
+                  ))}
+                  <Divider />
+                  <Row label="Total Liabilitas Jangka Panjang" value={data.totalLJG} bold />
+                </div>
+              )}
               <DoubleDivider />
               <Row label="TOTAL LIABILITAS" value={data.totalLiabilitas} bold />
 
               {/* ASET NETO */}
               <h3 className="font-bold text-sm uppercase tracking-wider mt-6">ASET NETO</h3>
-              <Row label="Tanpa Pembatasan" value={data.totalAsetNeto} indent />
+              {data.asetNetoItems.filter(a => a.saldo !== 0).map(a => (
+                <Row key={a.akun_id} label={a.nama} value={a.saldo} indent />
+              ))}
+              <Row label="Aset Neto (Aset - Liabilitas)" value={data.totalAsetNeto} indent />
               <DoubleDivider />
               <Row label="TOTAL LIABILITAS & ASET NETO" value={data.totalLiabilitas + data.totalAsetNeto} bold />
 

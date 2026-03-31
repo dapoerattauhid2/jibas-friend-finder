@@ -23,7 +23,7 @@ export default function LaporanPerubahanAsetNeto() {
   }).filter(Boolean)])).sort((a: any, b: any) => b - a);
 
   const isLoading = l1 || l2;
-  const saldoAwalTP = posisi?.surplusAkumulasian ?? 0;
+  const saldoAwalTP = posisi?.totalAsetNetoSaldo ?? 0;
   const surplusTP = komprehensif?.surplusDefisit ?? 0;
   const surplusTB = komprehensif?.surplusTerbatas ?? 0;
   const pkl = komprehensif?.pkl ?? 0;
