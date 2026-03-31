@@ -108,6 +108,49 @@ export default function BackupExport() {
       </Card>
 
       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Download className="h-5 w-5" />
+            Export Data Keuangan
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <ExportKeuanganButton label="Export Kode Akun (.xlsx)" onClick={async () => {
+              const { data } = await supabase.from("akun_rekening").select("*").order("kode");
+              const rows = (data || []).map((a: any) => ({
+                kode_akun: a.kode, nama_akun: a.nama, tipe_akun: a.jenis,
+                pos_isak35: a.pos_isak35 || "", saldo_normal: a.saldo_normal === "D" ? "debit" : "kredit",
+                urutan: a.urutan_isak35 || "", kode_isak35: a.kode_isak35 || "",
+              }));
+              const ws = XLSX.utils.json_to_sheet(rows);
+              const wb = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(wb, ws, "Kode Akun");
+              XLSX.writeFile(wb, `kode_akun_${new Date().toISOString().slice(0, 10)}.xlsx`);
+              toast.success("Export kode akun berhasil");
+            }} />
+            <ExportKeuanganButton label="Export Jurnal Lengkap (.xlsx)" onClick={async () => {
+              const { data: jurnals } = await supabase.from("jurnal").select("id, nomor, tanggal, keterangan, referensi, status");
+              const { data: details } = await supabase.from("jurnal_detail").select("jurnal_id, akun_id, debit, kredit, keterangan, akun_rekening(kode, nama)");
+              const rows = (details || []).map((d: any) => {
+                const j = (jurnals || []).find((j: any) => j.id === d.jurnal_id);
+                return {
+                  nomor_jurnal: j?.nomor || "", tanggal: j?.tanggal || "", keterangan_jurnal: j?.keterangan || "",
+                  kode_akun: d.akun_rekening?.kode || "", nama_akun: d.akun_rekening?.nama || "",
+                  debit: d.debit || 0, kredit: d.kredit || 0, referensi: j?.referensi || "",
+                };
+              });
+              const ws = XLSX.utils.json_to_sheet(rows);
+              const wb = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(wb, ws, "Jurnal");
+              XLSX.writeFile(wb, `jurnal_${new Date().toISOString().slice(0, 10)}.xlsx`);
+              toast.success("Export jurnal berhasil");
+            }} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardContent className="p-5">
           <p className="text-sm text-muted-foreground">
             <strong>Catatan:</strong> Export akan mengunduh data dalam format XLSX (Excel). Setiap tabel menjadi 1 sheet.
@@ -117,5 +160,20 @@ export default function BackupExport() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function ExportKeuanganButton({ label, onClick }: { label: string; onClick: () => Promise<void> }) {
+  const [loading, setLoading] = useState(false);
+  const handle = async () => {
+    setLoading(true);
+    try { await onClick(); } catch (e: any) { toast.error(e.message); }
+    setLoading(false);
+  };
+  return (
+    <Button variant="outline" className="justify-start h-auto py-3" onClick={handle} disabled={loading}>
+      {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+      {label}
+    </Button>
   );
 }
