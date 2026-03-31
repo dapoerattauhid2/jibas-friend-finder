@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, GraduationCap, Wallet, Users,
   MonitorPlay, BookOpen, Megaphone, Settings,
-  ChevronRight,
+  ChevronRight, Database, ShieldCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
