@@ -236,11 +236,12 @@ function DialogLembaga({ open, onOpenChange, initial, onSaved }: {
   const handleSave = async () => {
     if (!nama.trim()) { toast.error("Nama lembaga wajib diisi"); return; }
     setSaving(true);
-    const payload = {
+    const payload: any = {
       kode: kode || null, nama, keterangan: keterangan || null, aktif,
       alamat: alamat || null, kota: kota || null, telepon: telepon || null,
       email: email || null, kepala_sekolah: kepalaSekolah || null,
       npsn: npsn || null, akreditasi: akreditasi || null, logo_url: logoUrl || null,
+      kategori: kategori || null,
     };
     let error;
     if (initial) {
