@@ -268,6 +268,20 @@ function DialogLembaga({ open, onOpenChange, initial, onSaved }: {
             <div className="space-y-1.5"><Label>Nama *</Label><Input value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Sekolah Dasar" /></div>
           </div>
           <div className="space-y-1.5"><Label>Keterangan</Label><Input value={keterangan} onChange={(e) => setKeterangan(e.target.value)} /></div>
+          <div className="space-y-1.5">
+            <Label>Kategori Unit</Label>
+            <Select value={kategori || "__none__"} onValueChange={(v) => setKategori(v === "__none__" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Pilih kategori..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Tidak dikategorikan —</SelectItem>
+                <SelectItem value="unit_pendidikan">Unit Pendidikan (TK, SD, SMP, SMA, MTA)</SelectItem>
+                <SelectItem value="unit_usaha">Unit Usaha (Mart, Dapoer, Kantin, Kepondokan)</SelectItem>
+                <SelectItem value="unit_dana_terikat">Unit Dana Terikat (Masjid ICT — aset neto terikat)</SelectItem>
+                <SelectItem value="unit_yayasan">Unit Yayasan (Umum, Kepegawaian)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">Digunakan untuk pengelompokan laporan ISAK 35</p>
+          </div>
 
           <div className="border-t pt-4 mt-4">
             <p className="text-sm font-semibold text-muted-foreground mb-3">Identitas Lembaga (untuk kop surat & rapor)</p>

@@ -788,3 +788,135 @@ function TabTemplateNomor() {
     </Card>
   );
 }
+
+// ─── Tab Program Dana ───
+const JENIS_DANA_OPTIONS = [
+  { value: "terikat_temporer", label: "Terikat Sementara", description: "Dana donasi dengan tujuan/batas waktu tertentu (contoh: PALESTINA, AYO BERSEDEKAH)" },
+  { value: "terikat_permanen", label: "Terikat Permanen", description: "Dana wakaf/endowment yang tidak boleh habis pokoknya" },
+  { value: "lintas_unit", label: "Lintas Unit", description: "Program yang mencakup lebih dari satu unit (contoh: SUBSIDI SILANG)" },
+];
+
+const JENIS_DANA_BADGE: Record<string, { label: string; className: string }> = {
+  terikat_temporer: { label: "Terikat Sementara", className: "bg-info/15 text-info border-info/30" },
+  terikat_permanen: { label: "Terikat Permanen", className: "bg-destructive/15 text-destructive border-destructive/30" },
+  lintas_unit: { label: "Lintas Unit", className: "bg-warning/15 text-warning border-warning/30" },
+};
+
+function TabProgramDana() {
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["program_dana"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("program_dana") as any).select("*").order("kode");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editItem, setEditItem] = useState<any>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [kode, setKode] = useState("");
+  const [nama, setNama] = useState("");
+  const [jenisDana, setJenisDana] = useState("terikat_temporer");
+  const [keterangan, setKeterangan] = useState("");
+  const [aktif, setAktif] = useState(true);
+
+  const openAdd = () => { setEditItem(null); setKode(""); setNama(""); setJenisDana("terikat_temporer"); setKeterangan(""); setAktif(true); setDialogOpen(true); };
+  const openEdit = (item: any) => { setEditItem(item); setKode(item.kode); setNama(item.nama); setJenisDana(item.jenis_dana); setKeterangan(item.keterangan || ""); setAktif(item.aktif !== false); setDialogOpen(true); };
+
+  const handleSave = async () => {
+    if (!kode.trim() || !nama.trim()) { toast.error("Kode dan Nama wajib diisi"); return; }
+    const payload = { kode: kode.trim(), nama: nama.trim(), jenis_dana: jenisDana, keterangan: keterangan || null, aktif };
+    let error;
+    if (editItem) {
+      ({ error } = await (supabase.from("program_dana") as any).update(payload).eq("id", editItem.id));
+    } else {
+      ({ error } = await (supabase.from("program_dana") as any).insert(payload));
+    }
+    if (error) { toast.error("Gagal menyimpan: " + error.message); return; }
+    toast.success(editItem ? "Program dana diperbarui" : "Program dana ditambahkan");
+    queryClient.invalidateQueries({ queryKey: ["program_dana"] });
+    setDialogOpen(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await (supabase.from("program_dana") as any).delete().eq("id", deleteId);
+    if (error) toast.error("Gagal menghapus: " + error.message);
+    else toast.success("Program dana dihapus");
+    queryClient.invalidateQueries({ queryKey: ["program_dana"] });
+    setDeleteId(null);
+  };
+
+  const columns: DataTableColumn<any>[] = [
+    { key: "kode", label: "Kode", sortable: true },
+    { key: "nama", label: "Nama", sortable: true },
+    {
+      key: "jenis_dana", label: "Jenis Dana",
+      render: (v) => {
+        const cfg = JENIS_DANA_BADGE[v as string];
+        return cfg ? <Badge variant="outline" className={cfg.className}>{cfg.label}</Badge> : String(v);
+      },
+    },
+    { key: "keterangan", label: "Keterangan", render: (v) => (v as string) || "-" },
+    { key: "aktif", label: "Status", render: (v) => <span className={v ? "text-success" : "text-muted-foreground"}>{v ? "Aktif" : "Nonaktif"}</span> },
+    {
+      key: "aksi", label: "Aksi",
+      render: (_, r) => (
+        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId((r as any).id)}><Trash2 className="h-4 w-4" /></Button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <Card className="mt-4">
+        <CardContent className="pt-6">
+          <DataTable
+            columns={columns}
+            data={data || []}
+            loading={isLoading}
+            pageSize={20}
+            actions={<Button size="sm" onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Tambah</Button>}
+          />
+        </CardContent>
+      </Card>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editItem ? "Edit" : "Tambah"} Program Dana</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div><Label>Kode *</Label><Input value={kode} onChange={(e) => setKode(e.target.value)} placeholder="PALESTINA" /></div>
+            <div><Label>Nama *</Label><Input value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Dana Bantuan Palestina" /></div>
+            <div>
+              <Label>Jenis Dana</Label>
+              <Select value={jenisDana} onValueChange={setJenisDana}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {JENIS_DANA_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {JENIS_DANA_OPTIONS.find(o => o.value === jenisDana)?.description}
+              </p>
+            </div>
+            <div><Label>Keterangan</Label><Textarea value={keterangan} onChange={(e) => setKeterangan(e.target.value)} /></div>
+            <div className="flex items-center gap-2"><Switch checked={aktif} onCheckedChange={setAktif} /><Label>Aktif</Label></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
+            <Button onClick={handleSave} disabled={!kode || !nama}>Simpan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <ConfirmDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} title="Hapus Program Dana" description="Yakin ingin menghapus program dana ini?" onConfirm={handleDelete} />
+    </>
+  );
+}
