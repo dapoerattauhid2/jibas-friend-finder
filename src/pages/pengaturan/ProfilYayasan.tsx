@@ -155,9 +155,24 @@ function TabLembaga({ isAdmin }: { isAdmin: boolean }) {
   const openAdd = () => { setEditing(null); setDialogOpen(true); };
   const openEdit = (row: DeptRow) => { setEditing(row); setDialogOpen(true); };
 
+  const KATEGORI_BADGE: Record<string, { label: string; className: string }> = {
+    unit_pendidikan: { label: "Pendidikan", className: "bg-info/15 text-info border-info/30" },
+    unit_usaha: { label: "Usaha", className: "bg-success/15 text-success border-success/30" },
+    unit_dana_terikat: { label: "Dana Terikat", className: "bg-warning/15 text-warning border-warning/30" },
+    unit_yayasan: { label: "Yayasan", className: "bg-muted text-muted-foreground border-muted-foreground/30" },
+  };
+
   const columns: DataTableColumn<DeptRow>[] = [
     { key: "kode", label: "Kode", sortable: true },
     { key: "nama", label: "Nama", sortable: true },
+    {
+      key: "kategori", label: "Kategori",
+      render: (v) => {
+        if (!v) return <span className="text-muted-foreground">—</span>;
+        const cfg = KATEGORI_BADGE[v as string];
+        return cfg ? <Badge variant="outline" className={cfg.className}>{cfg.label}</Badge> : String(v);
+      },
+    },
     { key: "kepala_sekolah", label: "Kepala Sekolah" },
     { key: "npsn", label: "NPSN" },
     {
