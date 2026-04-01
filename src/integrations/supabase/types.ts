@@ -216,6 +216,7 @@ export type Database = {
           alamat: string | null
           email: string | null
           id: string
+          kategori: string | null
           kepala_sekolah: string | null
           keterangan: string | null
           kode: string | null
@@ -231,6 +232,7 @@ export type Database = {
           alamat?: string | null
           email?: string | null
           id?: string
+          kategori?: string | null
           kepala_sekolah?: string | null
           keterangan?: string | null
           kode?: string | null
@@ -246,6 +248,7 @@ export type Database = {
           alamat?: string | null
           email?: string | null
           id?: string
+          kategori?: string | null
           kepala_sekolah?: string | null
           keterangan?: string | null
           kode?: string | null
@@ -468,6 +471,7 @@ export type Database = {
           id: string
           keterangan: string
           nomor: string | null
+          program_dana_id: string | null
           referensi: string | null
           status: string | null
           tanggal: string
@@ -481,6 +485,7 @@ export type Database = {
           id?: string
           keterangan: string
           nomor?: string | null
+          program_dana_id?: string | null
           referensi?: string | null
           status?: string | null
           tanggal: string
@@ -494,6 +499,7 @@ export type Database = {
           id?: string
           keterangan?: string
           nomor?: string | null
+          program_dana_id?: string | null
           referensi?: string | null
           status?: string | null
           tanggal?: string
@@ -527,6 +533,13 @@ export type Database = {
             columns: ["dibuat_oleh"]
             isOneToOne: false
             referencedRelation: "pegawai"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jurnal_program_dana_id_fkey"
+            columns: ["program_dana_id"]
+            isOneToOne: false
+            referencedRelation: "program_dana"
             referencedColumns: ["id"]
           },
         ]
@@ -2374,6 +2387,36 @@ export type Database = {
             referencedColumns: ["tahun_ajaran_id"]
           },
         ]
+      }
+      program_dana: {
+        Row: {
+          aktif: boolean
+          created_at: string | null
+          id: string
+          jenis_dana: string
+          keterangan: string | null
+          kode: string
+          nama: string
+        }
+        Insert: {
+          aktif?: boolean
+          created_at?: string | null
+          id?: string
+          jenis_dana: string
+          keterangan?: string | null
+          kode: string
+          nama: string
+        }
+        Update: {
+          aktif?: boolean
+          created_at?: string | null
+          id?: string
+          jenis_dana?: string
+          keterangan?: string | null
+          kode?: string
+          nama?: string
+        }
+        Relationships: []
       }
       remedial: {
         Row: {
