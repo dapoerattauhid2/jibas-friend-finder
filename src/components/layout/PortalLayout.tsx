@@ -93,10 +93,10 @@ export default function PortalLayout() {
             onClick={() => navigate("/portal")}
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 font-bold text-sm">
-              J
+              H
             </div>
             <span className="font-semibold text-sm hidden sm:inline">
-              JIBAS <span className="font-normal opacity-80">| Portal Orang Tua</span>
+              Hijrah At-Tauhid <span className="font-normal opacity-80">| Portal Orang Tua</span>
             </span>
           </div>
 
