@@ -117,7 +117,7 @@ export default function InfoGuru() {
         )}
 
         <p className="text-center text-xs text-muted-foreground mt-8">
-          © {new Date().getFullYear()} JIBAS — InfoGuru
+          © {new Date().getFullYear()} Hijrah At-Tauhid — InfoGuru
         </p>
       </div>
     </div>

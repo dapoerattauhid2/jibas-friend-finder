@@ -102,7 +102,7 @@ export default function PortalDashboard() {
           Selamat Datang, {user?.email?.split("@")[0]}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Portal Orang Tua JIBAS
+          Portal Orang Tua Hijrah At-Tauhid
         </p>
       </div>
 

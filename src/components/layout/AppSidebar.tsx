@@ -153,13 +153,13 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary font-bold text-sidebar-primary-foreground text-sm">
-            J
+            H
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-sidebar-foreground">JIBAS</span>
+              <span className="text-sm font-bold text-sidebar-foreground">Hijrah At-Tauhid</span>
               <span className="text-[10px] text-sidebar-foreground/60 leading-tight">
-                Sistem Informasi Sekolah
+                Sistem Manajemen Sekolah
               </span>
             </div>
           )}

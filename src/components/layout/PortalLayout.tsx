@@ -231,7 +231,7 @@ export default function PortalLayout() {
 
       {/* Footer */}
       <footer className="border-t bg-muted/30 py-4 text-center text-xs text-muted-foreground">
-        © 2025 JIBAS — Portal Orang Tua
+        © 2025 Hijrah At-Tauhid — Portal Orang Tua
       </footer>
     </div>
   );

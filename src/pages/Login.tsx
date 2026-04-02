@@ -124,7 +124,7 @@ export default function Login() {
         </Card>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          © 2026 JIBAS — Sistem Informasi Sekolah
+          © 2026 Hijrah At-Tauhid — Sistem Manajemen Sekolah
         </p>
       </div>
     </div>

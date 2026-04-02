@@ -213,7 +213,7 @@ export default function Anjungan() {
       </main>
 
       <footer className="mt-8 border-t border-white/10 py-4 text-center text-xs text-emerald-400">
-        © {new Date().getFullYear()} JIBAS — Anjungan Informasi Sekolah
+        © {new Date().getFullYear()} Hijrah At-Tauhid — Anjungan Informasi Sekolah
       </footer>
     </div>
   );

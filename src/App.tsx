@@ -109,6 +109,8 @@ const App = () => (
             <Route path="/infoguru" element={<InfoGuru />} />
             <Route path="/anjungan" element={<Anjungan />} />
             <Route path="/psb" element={<PSBDaftar />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/support" element={<Support />} />
             {/* Portal Orang Tua */}
             <Route path="/portal/login" element={<PortalLogin />} />
             <Route element={<ProtectedPortalRoute />}>

@@ -278,7 +278,7 @@ export default function PSBDaftar() {
           </Link>
         </p>
         <p className="mt-2 text-center text-xs text-muted-foreground">
-          © 2025 JIBAS — Pendaftaran Siswa Baru
+          © 2025 Hijrah At-Tauhid — Pendaftaran Siswa Baru
         </p>
       </div>
     </div>
