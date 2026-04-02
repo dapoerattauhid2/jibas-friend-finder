@@ -111,7 +111,7 @@ export default function PSBDaftar() {
           </div>
           <h1 className="text-2xl font-bold text-emerald-800">Pendaftaran Siswa Baru</h1>
           <p className="mt-1 text-sm text-emerald-600/80">
-            JIBAS — Jaringan Informasi Bersama Antar Sekolah
+            Hijrah At-Tauhid — Sistem Manajemen Sekolah Islam
           </p>
         </div>
 
