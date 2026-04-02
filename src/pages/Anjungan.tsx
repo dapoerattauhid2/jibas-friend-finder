@@ -95,7 +95,7 @@ export default function Anjungan() {
               J
             </div>
             <div>
-              <h1 className="text-xl font-bold">{sekolah?.nama || "JIBAS"}</h1>
+              <h1 className="text-xl font-bold">{sekolah?.nama || "Hijrah At-Tauhid"}</h1>
               <p className="text-sm text-emerald-300">{sekolah?.alamat || "Anjungan Informasi"}</p>
             </div>
           </div>
