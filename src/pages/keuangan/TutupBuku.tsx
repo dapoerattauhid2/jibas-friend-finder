@@ -21,14 +21,16 @@ export default function TutupBuku() {
   const { data: taList } = useTahunAjaran();
   const selectedTA = taList?.find((t: any) => t.id === tahunId);
 
-  // Check AKUN_LABA_DITAHAN setting
-  const { data: akunLabaDitahan } = useQuery({
-    queryKey: ["pengaturan_akun", "AKUN_LABA_DITAHAN"],
+  // Check AKUN_ASET_NETO_TIDAK_TERIKAT setting (ISAK 35 nirlaba; legacy: AKUN_LABA_DITAHAN)
+  const { data: akunAsetNeto } = useQuery({
+    queryKey: ["pengaturan_akun", "AKUN_ASET_NETO_TIDAK_TERIKAT"],
     queryFn: async () => {
       const { data } = await supabase
         .from("pengaturan_akun")
         .select("*, akun:akun_id(id, kode, nama)")
-        .eq("kode_setting", "AKUN_LABA_DITAHAN")
+        .in("kode_setting", ["AKUN_ASET_NETO_TIDAK_TERIKAT", "AKUN_LABA_DITAHAN"])
+        .order("kode_setting", { ascending: true })
+        .limit(1)
         .maybeSingle();
       return data as any;
     },
@@ -111,15 +113,15 @@ export default function TutupBuku() {
   const totalBeban = saldoAkun?.filter(a => a.jenis === "Beban").reduce((s, a) => s + a.saldoAkhir, 0) || 0;
   const labaRugi = totalPendapatan - totalBeban;
 
-  const hasLabaDitahan = !!akunLabaDitahan?.akun_id;
+  const hasAkunEkuitas = !!akunAsetNeto?.akun_id;
   const isTADitutup = selectedTA?.ditutup === true;
 
   const tutupBukuMutation = useMutation({
     mutationFn: async () => {
       if (!saldoAkun?.length || !selectedTA) throw new Error("Data tidak lengkap");
-      if (!hasLabaDitahan) throw new Error("Akun Laba Ditahan belum dikonfigurasi. Silakan atur di Pengaturan > Referensi Keuangan.");
+      if (!hasAkunEkuitas) throw new Error("Akun Aset Neto Tidak Terikat belum dikonfigurasi. Atur di Keuangan → Referensi Keuangan → Pengaturan Akun.");
 
-      const akunLabaId = akunLabaDitahan.akun_id;
+      const akunEkuitasId = akunAsetNeto.akun_id;
 
       // 1. Update saldo_awal for each account to saldoAkhir
       for (const akun of saldoAkun) {
