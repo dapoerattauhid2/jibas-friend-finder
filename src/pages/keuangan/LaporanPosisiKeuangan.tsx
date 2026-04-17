@@ -92,19 +92,33 @@ export default function LaporanPosisiKeuangan() {
               <DoubleDivider />
               <Row label="TOTAL LIABILITAS" value={data.totalLiabilitas} bold />
 
-              {/* ASET NETO */}
+              {/* ASET NETO (ISAK 35: saldo akun ekuitas + surplus periode berjalan) */}
               <h3 className="font-bold text-sm uppercase tracking-wider mt-6">ASET NETO</h3>
               {data.asetNetoItems.filter(a => a.saldo !== 0).map(a => (
                 <Row key={a.akun_id} label={a.nama} value={a.saldo} indent />
               ))}
-              <Row label="Aset Neto (Aset - Liabilitas)" value={data.totalAsetNeto} indent />
+              {data.asetNetoItems.filter(a => a.saldo !== 0).length === 0 && (
+                <p className="text-xs text-muted-foreground pl-4 italic">Belum ada saldo akun aset neto — lakukan tutup buku untuk memindahkan surplus ke ekuitas.</p>
+              )}
+              <Divider />
+              <Row label="Saldo Aset Neto (dari Akun Ekuitas)" value={data.totalAsetNetoSaldo} indent />
+              {data.surplusBerjalan !== 0 && (
+                <Row label="Surplus (Defisit) Periode Berjalan — Tidak Terikat" value={data.surplusBerjalan} indent />
+              )}
+              {data.surplusTerbatasBerjalan !== 0 && (
+                <Row label="Surplus (Defisit) Periode Berjalan — Terikat" value={data.surplusTerbatasBerjalan} indent />
+              )}
               <DoubleDivider />
+              <Row label="TOTAL ASET NETO" value={data.totalAsetNeto} bold />
               <Row label="TOTAL LIABILITAS & ASET NETO" value={data.totalLiabilitas + data.totalAsetNeto} bold />
 
-              {data.selisih !== 0 && (
+              {Math.abs(data.selisih) > 1 && (
                 <Alert variant="destructive" className="mt-4">
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>Perhatian: laporan tidak balance (selisih: {formatRupiah(Math.round(Math.abs(data.selisih)))})</AlertDescription>
+                  <AlertDescription>
+                    Perhatian: neraca tidak seimbang (selisih: {formatRupiah(Math.round(Math.abs(data.selisih)))}).
+                    Periksa pemetaan <code>pos_isak35</code> pada akun rekening atau lakukan koreksi jurnal.
+                  </AlertDescription>
                 </Alert>
               )}
             </div>

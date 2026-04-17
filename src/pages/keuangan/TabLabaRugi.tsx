@@ -78,7 +78,7 @@ export default function TabLabaRugi({ departemenId }: { departemenId?: string })
     { kode: "", nama: "TOTAL PENDAPATAN", kategori: "", jumlah: totalPendapatan },
     ...beban.map((a) => ({ kode: a.kode, nama: a.nama, kategori: "Beban", jumlah: a.saldo })),
     { kode: "", nama: "TOTAL BEBAN", kategori: "", jumlah: totalBeban },
-    { kode: "", nama: "LABA / (RUGI) BERSIH", kategori: "", jumlah: labaRugi },
+    { kode: "", nama: "SURPLUS / (DEFISIT)", kategori: "", jumlah: labaRugi },
   ];
 
   return (
@@ -106,7 +106,8 @@ export default function TabLabaRugi({ departemenId }: { departemenId?: string })
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="text-center mb-4">
-              <h2 className="text-lg font-bold">LAPORAN LABA RUGI</h2>
+              <h2 className="text-lg font-bold">LAPORAN PENGHASILAN KOMPREHENSIF</h2>
+              <p className="text-xs text-muted-foreground">(Surplus/Defisit — Entitas Nirlaba ISAK 35)</p>
               <p className="text-sm text-muted-foreground">Periode: Tahun {tahun}</p>
             </div>
 
@@ -142,9 +143,9 @@ export default function TabLabaRugi({ departemenId }: { departemenId?: string })
               </div>
             </div>
 
-            {/* Laba Rugi */}
+            {/* Surplus / Defisit (ISAK 35) */}
             <div className="border-t-2 border-double pt-3 flex justify-between font-bold text-lg">
-              <span>LABA / (RUGI) BERSIH</span>
+              <span>SURPLUS / (DEFISIT)</span>
               <span className={labaRugi >= 0 ? "text-success" : "text-destructive"}>
                 {formatRupiah(labaRugi)}
               </span>

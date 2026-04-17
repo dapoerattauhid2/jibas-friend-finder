@@ -94,6 +94,28 @@ function sumSaldo(items: SaldoAkun[]) {
   return items.reduce((s, a) => s + a.saldo, 0);
 }
 
+// ============================================================
+// Identifikasi akun KAS & SETARA KAS (untuk metode langsung)
+// Akun kas/bank di CoA: kode 1101–1213 dengan nama berawalan KAS / BANK
+// pos_isak35 = aset_lancar
+// ============================================================
+function isAkunKas(kode: string, nama: string): boolean {
+  const n = (nama || "").toUpperCase().trim();
+  return n.startsWith("KAS ") || n === "KAS" || n.startsWith("BANK ") || n === "BANK";
+}
+
+interface AkunMeta { id: string; kode: string; nama: string; pos_isak35: string | null; jenis: string }
+
+async function getAkunMeta(): Promise<Record<string, AkunMeta>> {
+  const { data } = await supabase
+    .from("akun_rekening")
+    .select("id, kode, nama, pos_isak35, jenis")
+    .eq("aktif", true);
+  const map: Record<string, AkunMeta> = {};
+  for (const a of (data as any[]) || []) map[a.id] = a;
+  return map;
+}
+
 export function useLaporanKomprehensif(tahun: number, departemenId?: string) {
   return useQuery({
     queryKey: ["isak35_komprehensif", tahun, departemenId],
@@ -104,8 +126,18 @@ export function useLaporanKomprehensif(tahun: number, departemenId?: string) {
       const pendapatan = byPos(saldo, "pendapatan_tidak_terikat");
       const totalPendapatan = sumSaldo(pendapatan);
 
-      // Beban (program + penunjang)
-      const beban = byPos(saldo, "beban_program", "beban_penunjang");
+      // Beban (program + penunjang) + tambah beban depresiasi sebagai item virtual
+      const bebanAkun = byPos(saldo, "beban_program", "beban_penunjang");
+      const bebanDepresiasiItem: SaldoAkun | null = dep.totalBeban > 0 ? {
+        akun_id: "__depresiasi__",
+        kode: "DEP",
+        nama: "Beban Depresiasi Aset Tetap",
+        pos_isak35: "beban_penunjang",
+        saldo_normal: "D",
+        urutan_isak35: 9999,
+        saldo: dep.totalBeban,
+      } : null;
+      const beban = bebanDepresiasiItem ? [...bebanAkun, bebanDepresiasiItem] : bebanAkun;
       const totalBeban = sumSaldo(beban);
 
       const surplusDefisit = totalPendapatan - totalBeban;
@@ -165,13 +197,23 @@ export function useLaporanPosisiKeuangan(tahun: number, departemenId?: string) {
 
       const totalLiabilitas = totalLJP + totalLJG;
 
-      // Aset Neto
+      // Aset Neto - SALDO AKTUAL dari akun ekuitas (sumber kebenaran ISAK 35)
       const asetNetoItems = byPos(saldo, "aset_neto_tidak_terikat", "aset_neto_terikat_temporer", "aset_neto_terikat_permanen");
       const totalAsetNetoSaldo = sumSaldo(asetNetoItems);
 
-      // Calculated aset neto = total aset - total liabilitas
-      const totalAsetNeto = totalAset - totalLiabilitas;
+      // Surplus/Defisit periode berjalan (belum di-tutup-buku-kan ke ekuitas)
+      const pendapatanTT = sumSaldo(byPos(saldo, "pendapatan_tidak_terikat"));
+      const bebanTT = sumSaldo(byPos(saldo, "beban_program", "beban_penunjang")) + dep.totalBeban;
+      const surplusBerjalan = pendapatanTT - bebanTT;
 
+      const pendapatanTerbatas = sumSaldo(byPos(saldo, "pendapatan_terikat_temporer", "pendapatan_terikat_permanen"));
+      const bebanTerbatas = sumSaldo(byPos(saldo, "beban_terbatas"));
+      const surplusTerbatasBerjalan = pendapatanTerbatas - bebanTerbatas;
+
+      // Total aset neto = saldo akun + surplus periode berjalan
+      const totalAsetNeto = totalAsetNetoSaldo + surplusBerjalan + surplusTerbatasBerjalan;
+
+      // Selisih neraca (harus 0 jika jurnal seimbang)
       const selisih = totalAset - totalLiabilitas - totalAsetNeto;
 
       return {
@@ -182,44 +224,189 @@ export function useLaporanPosisiKeuangan(tahun: number, departemenId?: string) {
         liabJGItems, totalLJG,
         totalLiabilitas,
         asetNetoItems, totalAsetNetoSaldo,
+        surplusBerjalan, surplusTerbatasBerjalan,
         totalAsetNeto,
         selisih,
+        dep,
       };
     },
   });
 }
 
+// ============================================================
+// LAPORAN ARUS KAS — METODE LANGSUNG (ISAK 35)
+// - Penerimaan & pengeluaran kas dirinci dari jurnal_detail akun kas
+// - Klasifikasi operasi/investasi/pendanaan berdasarkan akun lawan
+// - Kas awal diambil dari saldo_awal_isak35 (atau saldo_awal akun)
+// ============================================================
 export function useLaporanArusKas(tahun: number, departemenId?: string) {
   return useQuery({
-    queryKey: ["isak35_arus_kas", tahun, departemenId],
+    queryKey: ["isak35_arus_kas_direct", tahun, departemenId],
     queryFn: async () => {
-      const saldo = await hitungSaldoAkun(tahun, departemenId);
+      const akunMeta = await getAkunMeta();
 
-      // Penerimaan operasi = all pendapatan accounts
-      const pendapatanItems = byPos(saldo, "pendapatan_tidak_terikat", "pendapatan_terikat_temporer", "pendapatan_terikat_permanen");
-      const penerimaanOperasi = sumSaldo(pendapatanItems);
+      // Identifikasi akun kas & setara kas
+      const akunKasIds = new Set<string>();
+      for (const a of Object.values(akunMeta)) {
+        if (a.pos_isak35 === "aset_lancar" && isAkunKas(a.kode, a.nama)) {
+          akunKasIds.add(a.id);
+        }
+      }
 
-      // Pengeluaran operasi = all beban accounts
-      const bebanItems = byPos(saldo, "beban_program", "beban_penunjang", "beban_terbatas");
-      const pengeluaranOperasi = sumSaldo(bebanItems);
+      // Saldo awal kas — dari saldo_awal_isak35 untuk tahun ini (atau saldo_awal akun)
+      const saldoAwalQ = supabase
+        .from("saldo_awal_isak35" as any)
+        .select("akun_id, saldo")
+        .eq("tahun", tahun);
+      if (departemenId) saldoAwalQ.eq("departemen_id", departemenId);
+      const { data: saldoAwalRows } = await saldoAwalQ;
+      const saldoAwalMap: Record<string, number> = {};
+      for (const r of (saldoAwalRows as any[]) || []) saldoAwalMap[r.akun_id] = Number(r.saldo || 0);
 
-      const arusOperasi = penerimaanOperasi - pengeluaranOperasi;
+      // Saldo akun fallback
+      const { data: akunSaldoAwal } = await supabase
+        .from("akun_rekening")
+        .select("id, saldo_awal")
+        .in("id", Array.from(akunKasIds).length > 0 ? Array.from(akunKasIds) : ["00000000-0000-0000-0000-000000000000"]);
+      let kasAwal = 0;
+      for (const a of (akunSaldoAwal as any[]) || []) {
+        kasAwal += saldoAwalMap[a.id] ?? Number(a.saldo_awal || 0);
+      }
 
-      // Investasi = aset tidak lancar movement (simplified)
-      const asetTLItems = byPos(saldo, "aset_tidak_lancar");
-      const arusInvestasi = -sumSaldo(asetTLItems);
+      // Ambil semua jurnal posted di tahun terkait yang menyentuh akun kas
+      let jq = supabase
+        .from("jurnal")
+        .select("id")
+        .eq("status", "posted")
+        .gte("tanggal", `${tahun}-01-01`)
+        .lte("tanggal", `${tahun}-12-31`);
+      if (departemenId) jq = jq.eq("departemen_id", departemenId);
+      const { data: jurnalRows } = await jq;
+      const jurnalIds = (jurnalRows || []).map((j: any) => j.id);
 
-      // Pendanaan = liabilitas movement
-      const liabItems = byPos(saldo, "kewajiban_jangka_pendek", "kewajiban_jangka_panjang");
-      const arusPendanaan = sumSaldo(liabItems);
+      let allDetails: any[] = [];
+      if (jurnalIds.length > 0) {
+        // Batch IN to avoid url length limit
+        const batchSize = 500;
+        for (let i = 0; i < jurnalIds.length; i += batchSize) {
+          const batch = jurnalIds.slice(i, i + batchSize);
+          const { data } = await supabase
+            .from("jurnal_detail")
+            .select("jurnal_id, akun_id, debit, kredit")
+            .in("jurnal_id", batch);
+          allDetails.push(...((data as any[]) || []));
+        }
+      }
 
+      // Kelompokkan detail per jurnal
+      const perJurnal: Record<string, any[]> = {};
+      for (const d of allDetails) {
+        if (!perJurnal[d.jurnal_id]) perJurnal[d.jurnal_id] = [];
+        perJurnal[d.jurnal_id].push(d);
+      }
+
+      // Akumulator per kategori (operasi/investasi/pendanaan)
+      // Penerimaan: kas debit (uang masuk). Pengeluaran: kas kredit (uang keluar).
+      const acc = {
+        operasiPenerimaan: 0,
+        operasiPengeluaran: 0,
+        investasiPenerimaan: 0,
+        investasiPengeluaran: 0,
+        pendanaanPenerimaan: 0,
+        pendanaanPengeluaran: 0,
+        // Detail penerimaan operasi per pos sumber
+        rincianPenerimaanOperasi: {} as Record<string, number>,
+        rincianPengeluaranOperasi: {} as Record<string, number>,
+      };
+
+      const klasifikasiByLawan = (lawanPos: string | null | undefined): "operasi" | "investasi" | "pendanaan" => {
+        if (lawanPos === "aset_tidak_lancar") return "investasi";
+        if (lawanPos === "kewajiban_jangka_panjang") return "pendanaan";
+        if (lawanPos === "aset_neto_tidak_terikat" || lawanPos === "aset_neto_terikat_temporer" || lawanPos === "aset_neto_terikat_permanen") return "pendanaan";
+        return "operasi";
+      };
+
+      const namaPos = (pos: string | null | undefined, fallbackNama: string): string => {
+        switch (pos) {
+          case "pendapatan_tidak_terikat": return "Penerimaan Kas dari Donasi/Sumbangan & Jasa Pendidikan";
+          case "pendapatan_terikat_temporer": return "Penerimaan Kas dari Sumbangan Terikat Temporer";
+          case "pendapatan_terikat_permanen": return "Penerimaan Kas dari Sumbangan Terikat Permanen";
+          case "beban_program": return "Pembayaran Kas untuk Beban Program";
+          case "beban_penunjang": return "Pembayaran Kas untuk Beban Penunjang";
+          case "kewajiban_jangka_pendek": return "Pembayaran/Penerimaan Liabilitas Jangka Pendek";
+          default: return fallbackNama;
+        }
+      };
+
+      for (const jId of Object.keys(perJurnal)) {
+        const rows = perJurnal[jId];
+        const sisiKas = rows.filter(r => akunKasIds.has(r.akun_id));
+        if (sisiKas.length === 0) continue;
+        const sisiLawan = rows.filter(r => !akunKasIds.has(r.akun_id));
+
+        const totalKasDebit = sisiKas.reduce((s, r) => s + Number(r.debit || 0), 0);
+        const totalKasKredit = sisiKas.reduce((s, r) => s + Number(r.kredit || 0), 0);
+        const totalLawanDebit = sisiLawan.reduce((s, r) => s + Number(r.debit || 0), 0);
+        const totalLawanKredit = sisiLawan.reduce((s, r) => s + Number(r.kredit || 0), 0);
+
+        // Net kas: positif = penerimaan, negatif = pengeluaran
+        const netKas = totalKasDebit - totalKasKredit;
+        if (netKas === 0) continue;
+
+        // Distribusi proporsional terhadap akun lawan
+        const isPenerimaan = netKas > 0;
+        const totalLawanRelevan = isPenerimaan ? totalLawanKredit : totalLawanDebit;
+        const absKas = Math.abs(netKas);
+
+        for (const lr of sisiLawan) {
+          const meta = akunMeta[lr.akun_id];
+          const pos = meta?.pos_isak35 ?? null;
+          const nilaiLawan = isPenerimaan ? Number(lr.kredit || 0) : Number(lr.debit || 0);
+          if (nilaiLawan === 0) continue;
+          const porsi = totalLawanRelevan > 0 ? (nilaiLawan / totalLawanRelevan) * absKas : 0;
+          const cat = klasifikasiByLawan(pos);
+          if (isPenerimaan) {
+            if (cat === "operasi") acc.operasiPenerimaan += porsi;
+            else if (cat === "investasi") acc.investasiPenerimaan += porsi;
+            else acc.pendanaanPenerimaan += porsi;
+            if (cat === "operasi") {
+              const key = namaPos(pos, meta?.nama || "Penerimaan Lain");
+              acc.rincianPenerimaanOperasi[key] = (acc.rincianPenerimaanOperasi[key] || 0) + porsi;
+            }
+          } else {
+            if (cat === "operasi") acc.operasiPengeluaran += porsi;
+            else if (cat === "investasi") acc.investasiPengeluaran += porsi;
+            else acc.pendanaanPengeluaran += porsi;
+            if (cat === "operasi") {
+              const key = namaPos(pos, meta?.nama || "Pengeluaran Lain");
+              acc.rincianPengeluaranOperasi[key] = (acc.rincianPengeluaranOperasi[key] || 0) + porsi;
+            }
+          }
+        }
+      }
+
+      const arusOperasi = acc.operasiPenerimaan - acc.operasiPengeluaran;
+      const arusInvestasi = acc.investasiPenerimaan - acc.investasiPengeluaran;
+      const arusPendanaan = acc.pendanaanPenerimaan - acc.pendanaanPengeluaran;
       const kenaikanKas = arusOperasi + arusInvestasi + arusPendanaan;
-      const kasAwal = 0;
 
       return {
-        penerimaanOperasi, pengeluaranOperasi, arusOperasi,
-        arusInvestasi, arusPendanaan,
-        kenaikanKas, kasAwal, kasAkhir: kasAwal + kenaikanKas,
+        // Untuk komponen lama (kompatibel)
+        penerimaanOperasi: acc.operasiPenerimaan,
+        pengeluaranOperasi: acc.operasiPengeluaran,
+        arusOperasi,
+        arusInvestasi,
+        arusPendanaan,
+        kenaikanKas,
+        kasAwal,
+        kasAkhir: kasAwal + kenaikanKas,
+        // Detail metode langsung
+        rincianPenerimaanOperasi: acc.rincianPenerimaanOperasi,
+        rincianPengeluaranOperasi: acc.rincianPengeluaranOperasi,
+        investasiPenerimaan: acc.investasiPenerimaan,
+        investasiPengeluaran: acc.investasiPengeluaran,
+        pendanaanPenerimaan: acc.pendanaanPenerimaan,
+        pendanaanPengeluaran: acc.pendanaanPengeluaran,
       };
     },
   });
