@@ -31,6 +31,7 @@ export default function RingkasanISAK35() {
     { label: "Posisi Keuangan", url: "/keuangan/isak35/posisi-keuangan" },
     { label: "Perubahan Aset Neto", url: "/keuangan/isak35/perubahan-aset-neto" },
     { label: "Arus Kas", url: "/keuangan/isak35/arus-kas" },
+    { label: "Catatan atas Lap. Keuangan (CaLK)", url: "/keuangan/isak35/calk" },
   ];
 
   return (
