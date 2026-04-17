@@ -16,19 +16,30 @@ export default function LaporanPerubahanAsetNeto() {
   const [tahun, setTahun] = useState(currentYear);
   const { data: taList = [] } = useTahunAjaran();
   const { data: komprehensif, isLoading: l1 } = useLaporanKomprehensif(tahun);
-  const { data: posisi, isLoading: l2 } = useLaporanPosisiKeuangan(tahun);
+  // Saldo awal = saldo akhir tahun sebelumnya (ISAK 35: harus dari periode sebelumnya)
+  const { data: posisiTahunLalu, isLoading: l2 } = useLaporanPosisiKeuangan(tahun - 1);
 
   const years = Array.from(new Set([currentYear, currentYear - 1, ...taList.map((t: any) => {
     const m = t.nama?.match(/(\d{4})/); return m ? parseInt(m[1]) : null;
   }).filter(Boolean)])).sort((a: any, b: any) => b - a);
 
   const isLoading = l1 || l2;
-  const saldoAwalTP = posisi?.totalAsetNetoSaldo ?? 0;
+  // Saldo awal aset neto = saldo akhir tahun (tahun - 1)
+  // Memisahkan tidak terikat vs terikat dari saldo akun aset neto tahun sebelumnya
+  const saldoTPTahunLalu = (posisiTahunLalu?.asetNetoItems || [])
+    .filter(a => a.pos_isak35 === "aset_neto_tidak_terikat")
+    .reduce((s, a) => s + a.saldo, 0);
+  const saldoTBTahunLalu = (posisiTahunLalu?.asetNetoItems || [])
+    .filter(a => a.pos_isak35 === "aset_neto_terikat_temporer" || a.pos_isak35 === "aset_neto_terikat_permanen")
+    .reduce((s, a) => s + a.saldo, 0);
+  // Tambah surplus berjalan tahun lalu (jika belum ditutup buku)
+  const saldoAwalTP = saldoTPTahunLalu + (posisiTahunLalu?.surplusBerjalan || 0);
+  const saldoAwalTB = saldoTBTahunLalu + (posisiTahunLalu?.surplusTerbatasBerjalan || 0);
   const surplusTP = komprehensif?.surplusDefisit ?? 0;
   const surplusTB = komprehensif?.surplusTerbatas ?? 0;
   const pkl = komprehensif?.pkl ?? 0;
   const saldoAkhirTP = saldoAwalTP + surplusTP + pkl;
-  const saldoAkhirTB = surplusTB;
+  const saldoAkhirTB = saldoAwalTB + surplusTB;
 
   return (
     <div className="space-y-6">
@@ -58,10 +69,10 @@ export default function LaporanPerubahanAsetNeto() {
               </TableHeader>
               <TableBody>
                 <TableRow>
-                  <TableCell>Saldo Awal</TableCell>
+                  <TableCell>Saldo Awal (per 1 Jan {tahun})</TableCell>
                   <TableCell className="text-right"><Rp value={saldoAwalTP} /></TableCell>
-                  <TableCell className="text-right"><Rp value={0} /></TableCell>
-                  <TableCell className="text-right"><Rp value={saldoAwalTP} /></TableCell>
+                  <TableCell className="text-right"><Rp value={saldoAwalTB} /></TableCell>
+                  <TableCell className="text-right"><Rp value={saldoAwalTP + saldoAwalTB} /></TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell>Surplus / Defisit</TableCell>
