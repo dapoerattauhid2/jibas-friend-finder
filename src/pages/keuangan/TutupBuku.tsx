@@ -189,23 +189,23 @@ export default function TutupBuku() {
             });
           }
 
-          // Transfer laba/rugi to Laba Ditahan
+          // Transfer surplus/defisit ke Aset Neto Tidak Terikat (ISAK 35)
           if (labaRugi > 0) {
-            // Laba → Kredit Laba Ditahan
+            // Surplus → Kredit Aset Neto
             detailRows.push({
               jurnal_id: jurnalId,
-              akun_id: akunLabaId,
-              keterangan: `Laba bersih periode ${selectedTA.nama}`,
+              akun_id: akunEkuitasId,
+              keterangan: `Surplus periode ${selectedTA.nama}`,
               debit: 0,
               kredit: labaRugi,
               urutan: urutan++,
             });
           } else if (labaRugi < 0) {
-            // Rugi → Debit Laba Ditahan
+            // Defisit → Debit Aset Neto
             detailRows.push({
               jurnal_id: jurnalId,
-              akun_id: akunLabaId,
-              keterangan: `Rugi bersih periode ${selectedTA.nama}`,
+              akun_id: akunEkuitasId,
+              keterangan: `Defisit periode ${selectedTA.nama}`,
               debit: Math.abs(labaRugi),
               kredit: 0,
               urutan: urutan++,
@@ -228,7 +228,7 @@ export default function TutupBuku() {
         user_id: user?.id,
         total_laba_rugi: labaRugi,
         jurnal_id: jurnalId,
-        keterangan: `Tutup buku ${selectedTA.nama}. Laba/Rugi: ${formatRupiah(labaRugi)}`,
+        keterangan: `Tutup buku ${selectedTA.nama}. Surplus/Defisit: ${formatRupiah(labaRugi)}`,
       });
 
       return selectedTA.nama;
@@ -237,7 +237,7 @@ export default function TutupBuku() {
       qc.invalidateQueries({ queryKey: ["tahun_ajaran"] });
       qc.invalidateQueries({ queryKey: ["saldo_akun_tutup_buku"] });
       qc.invalidateQueries({ queryKey: ["log_tutup_buku"] });
-      toast.success(`Tutup buku ${nama} berhasil. Saldo awal telah diperbarui dan laba/rugi dipindahkan ke ekuitas.`);
+      toast.success(`Tutup buku ${nama} berhasil. Saldo awal telah diperbarui dan surplus/defisit dipindahkan ke Aset Neto Tidak Terikat.`);
       setTahunId("");
     },
     onError: (e: any) => toast.error(e.message),
@@ -277,19 +277,19 @@ export default function TutupBuku() {
           <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
           <div className="text-sm">
             <p className="font-medium text-warning">Perhatian!</p>
-            <p className="text-muted-foreground">Proses tutup buku akan mengubah saldo awal setiap akun, memindahkan laba/rugi ke akun Laba Ditahan, dan mengunci periode sehingga tidak bisa diinput transaksi baru. Proses ini tidak dapat dibatalkan.</p>
+            <p className="text-muted-foreground">Proses tutup buku akan mengubah saldo awal setiap akun, memindahkan surplus/defisit ke akun <strong>Aset Neto Tidak Terikat</strong> (ISAK 35), dan mengunci periode sehingga tidak bisa diinput transaksi baru. Proses ini tidak dapat dibatalkan.</p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Warning if AKUN_LABA_DITAHAN not configured */}
-      {!hasLabaDitahan && (
+      {/* Warning if AKUN_ASET_NETO_TIDAK_TERIKAT not configured */}
+      {!hasAkunEkuitas && (
         <Card className="border-destructive/30 bg-destructive/5">
           <CardContent className="pt-6 flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-medium text-destructive">Akun Laba Ditahan Belum Dikonfigurasi</p>
-              <p className="text-muted-foreground">Silakan atur akun Laba Ditahan (Ekuitas) di menu <strong>Keuangan → Referensi Keuangan → Pengaturan Akun</strong> sebelum melakukan tutup buku.</p>
+              <p className="font-medium text-destructive">Akun Aset Neto Tidak Terikat Belum Dikonfigurasi</p>
+              <p className="text-muted-foreground">Silakan atur akun <strong>Aset Neto Tidak Terikat</strong> (Ekuitas Nirlaba) di menu <strong>Keuangan → Referensi Keuangan → Pengaturan Akun</strong> sebelum melakukan tutup buku.</p>
             </div>
           </CardContent>
         </Card>
@@ -338,7 +338,7 @@ export default function TutupBuku() {
                 icon={TrendingDown}
               />
               <StatsCard
-                title={labaRugi >= 0 ? "Laba Bersih" : "Rugi Bersih"}
+                title={labaRugi >= 0 ? "Surplus" : "Defisit"}
                 value={formatRupiah(Math.abs(labaRugi))}
                 icon={DollarSign}
               />
@@ -362,7 +362,7 @@ export default function TutupBuku() {
               variant="destructive"
               size="lg"
               onClick={() => setShowConfirm(true)}
-              disabled={tutupBukuMutation.isPending || !saldoAkun?.length || !hasLabaDitahan}
+              disabled={tutupBukuMutation.isPending || !saldoAkun?.length || !hasAkunEkuitas}
             >
               <Lock className="h-4 w-4 mr-2" />
               {tutupBukuMutation.isPending ? "Memproses..." : "Proses Tutup Buku"}
@@ -390,7 +390,7 @@ export default function TutupBuku() {
         open={showConfirm}
         onOpenChange={setShowConfirm}
         title="Konfirmasi Tutup Buku"
-        description={`Anda yakin ingin menutup buku untuk tahun ${selectedTA?.nama}? Laba/Rugi sebesar ${formatRupiah(labaRugi)} akan dipindahkan ke akun Laba Ditahan. Saldo akhir akan menjadi saldo awal periode berikutnya. Periode akan dikunci dan proses ini tidak dapat dibatalkan.`}
+        description={`Anda yakin ingin menutup buku untuk tahun ${selectedTA?.nama}? Surplus/Defisit sebesar ${formatRupiah(labaRugi)} akan dipindahkan ke akun Aset Neto Tidak Terikat (ISAK 35). Saldo akhir akan menjadi saldo awal periode berikutnya. Periode akan dikunci dan proses ini tidak dapat dibatalkan.`}
         onConfirm={() => tutupBukuMutation.mutate()}
         confirmLabel="Ya, Tutup Buku"
         variant="destructive"
