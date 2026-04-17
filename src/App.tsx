@@ -68,6 +68,7 @@ import LaporanKomprehensif from "./pages/keuangan/LaporanKomprehensif";
 import LaporanPosisiKeuangan from "./pages/keuangan/LaporanPosisiKeuangan";
 import LaporanArusKasISAK35 from "./pages/keuangan/LaporanArusKasISAK35";
 import LaporanPerubahanAsetNeto from "./pages/keuangan/LaporanPerubahanAsetNeto";
+import CatatanLaporanKeuangan from "./pages/keuangan/CatatanLaporanKeuangan";
 import ProfilYayasan from "./pages/pengaturan/ProfilYayasan";
 import ManajemenPengguna from "./pages/pengaturan/ManajemenPengguna";
 import ManajemenOrtu from "./pages/pengaturan/ManajemenOrtu";
@@ -177,6 +178,7 @@ const App = () => (
                   <Route path="/keuangan/isak35/posisi-keuangan" element={<LaporanPosisiKeuangan />} />
                   <Route path="/keuangan/isak35/arus-kas" element={<LaporanArusKasISAK35 />} />
                   <Route path="/keuangan/isak35/perubahan-aset-neto" element={<LaporanPerubahanAsetNeto />} />
+                  <Route path="/keuangan/isak35/calk" element={<CatatanLaporanKeuangan />} />
                 </Route>
                 {/* Kepegawaian */}
                 <Route path="/kepegawaian" element={<Kepegawaian />} />
