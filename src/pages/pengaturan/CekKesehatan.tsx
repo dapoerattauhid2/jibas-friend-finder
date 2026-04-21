@@ -94,7 +94,7 @@ export default function CekKesehatan() {
       const sums: Record<string, number> = {};
       (akuns || []).forEach((a: any) => { sums[a.jenis] = (sums[a.jenis] || 0) + Number(a.saldo_awal || 0); });
       const totalA = sums["aset"] || 0;
-      const totalKAN = (sums["kewajiban"] || 0) + (sums["aset_neto"] || 0);
+      const totalKAN = (sums["kewajiban"] || 0) + (sums["liabilitas"] || 0) + (sums["aset_neto"] || 0);
       const selisih = totalA - totalKAN;
       checks.push({
         title: "Persamaan Akuntansi (Saldo Awal)",
