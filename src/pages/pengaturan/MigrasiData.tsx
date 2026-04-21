@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Download, Upload, FileSpreadsheet, Loader2, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import * as XLSX from "xlsx";
 
-const TIPE_AKUN_VALID = ["aset", "kewajiban", "aset_neto", "pendapatan", "beban"];
+const TIPE_AKUN_VALID = ["aset", "liabilitas", "kewajiban", "aset_neto", "pendapatan", "beban"];
 const SALDO_NORMAL_VALID = ["debit", "kredit"];
 const POS_ISAK35_VALID = [
   "aset_lancar", "aset_tidak_lancar", "kewajiban_jangka_pendek", "kewajiban_jangka_panjang",
@@ -438,7 +438,7 @@ function TabSaldoAwal() {
 
   const grouped = useMemo(() => {
     const groups: Record<string, AkunSaldo[]> = {};
-    const order = ["aset", "kewajiban", "aset_neto", "pendapatan", "beban"];
+    const order = ["aset", "liabilitas", "kewajiban", "aset_neto", "pendapatan", "beban"];
     order.forEach(t => { groups[t] = []; });
     akuns.forEach(a => {
       const key = a.jenis || "aset";
