@@ -16,10 +16,50 @@ import { formatRupiah } from "@/hooks/useKeuangan";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
+// Sesuai ISAK 35: gunakan pos_isak35 untuk pengelompokan neraca
+const POS_ASET = ["aset_lancar", "aset_tidak_lancar"];
+const POS_KEWAJIBAN = ["kewajiban_jangka_pendek", "kewajiban_jangka_panjang"];
+const POS_ASET_NETO = [
+  "aset_neto_tidak_terikat",
+  "aset_neto_terikat_temporer",
+  "aset_neto_terikat_permanen",
+];
+const POS_PENDAPATAN = [
+  "pendapatan_tidak_terikat",
+  "pendapatan_terikat_temporer",
+  "pendapatan_terikat_permanen",
+  "pendapatan",
+  "pendapatan_terbatas",
+];
+const POS_BEBAN = ["beban_program", "beban_penunjang", "beban", "beban_terbatas"];
+
+// Fallback: jika pos_isak35 tidak diisi, gunakan kolom jenis (ISAK 35)
+function resolveKelompok(akun: any): "aset" | "kewajiban" | "aset_neto" | "pendapatan" | "beban" | null {
+  const pos = akun.pos_isak35 as string | null;
+  if (pos) {
+    if (POS_ASET.includes(pos)) return "aset";
+    if (POS_KEWAJIBAN.includes(pos)) return "kewajiban";
+    if (POS_ASET_NETO.includes(pos)) return "aset_neto";
+    if (POS_PENDAPATAN.includes(pos)) return "pendapatan";
+    if (POS_BEBAN.includes(pos)) return "beban";
+  }
+  // Fallback ke kolom jenis (sudah pakai terminologi ISAK 35)
+  const j = akun.jenis as string | null;
+  if (j === "aset") return "aset";
+  if (j === "kewajiban") return "kewajiban";
+  if (j === "aset_neto") return "aset_neto";
+  if (j === "pendapatan") return "pendapatan";
+  if (j === "beban") return "beban";
+  // Alias lama yang mungkin masih ada di data
+  if (j === "liabilitas") return "kewajiban";
+  if (j === "ekuitas") return "aset_neto";
+  return null;
+}
+
 interface AkunNeraca {
   kode: string;
   nama: string;
-  jenis: string;
+  kelompok: "aset" | "kewajiban" | "aset_neto";
   saldo: number;
 }
 
@@ -33,7 +73,7 @@ export default function TabNeracaAkuntansi({ departemenId }: { departemenId?: st
     queryFn: async () => {
       const { data, error } = await supabase
         .from("akun_rekening")
-        .select("id, kode, nama, jenis, saldo_normal, saldo_awal")
+        .select("id, kode, nama, jenis, pos_isak35, saldo_normal, saldo_awal")
         .eq("aktif", true)
         .order("kode");
       if (error) throw error;
@@ -45,7 +85,7 @@ export default function TabNeracaAkuntansi({ departemenId }: { departemenId?: st
     queryKey: ["neraca_akuntansi", tanggalStr, departemenId],
     enabled: !!akunList,
     queryFn: async () => {
-      // Fetch all jurnal_detail with pagination to avoid 1000-row limit
+      // Fetch semua jurnal_detail dengan pagination (hindari limit 1000 baris)
       let allDetails: any[] = [];
       let from = 0;
       const batchSize = 5000;
@@ -75,53 +115,60 @@ export default function TabNeracaAkuntansi({ departemenId }: { departemenId?: st
       });
 
       const neracaItems: AkunNeraca[] = [];
-      let labaRugi = 0; // pendapatan - beban
+      let surplusDefisit = 0; // pendapatan - beban (sesuai ISAK 35)
 
       akunList?.forEach((akun) => {
         const mutasi = mutasiMap.get(akun.id) || { debit: 0, kredit: 0 };
+        // saldo_normal ISAK 35: "D" = debit, "K" = kredit (atau "debit"/"kredit")
+        const isDebit =
+          akun.saldo_normal === "D" || akun.saldo_normal === "debit";
         let saldo = Number(akun.saldo_awal || 0);
-        if (akun.saldo_normal === "debit") {
+        if (isDebit) {
           saldo += mutasi.debit - mutasi.kredit;
         } else {
           saldo += mutasi.kredit - mutasi.debit;
         }
 
-        if (["aset", "liabilitas", "ekuitas"].includes(akun.jenis)) {
-          neracaItems.push({ kode: akun.kode, nama: akun.nama, jenis: akun.jenis, saldo });
-        } else if (akun.jenis === "pendapatan") {
-          labaRugi += saldo;
-        } else if (akun.jenis === "beban") {
-          labaRugi -= saldo;
+        const kelompok = resolveKelompok(akun);
+        if (kelompok === "aset" || kelompok === "kewajiban" || kelompok === "aset_neto") {
+          neracaItems.push({ kode: akun.kode, nama: akun.nama, kelompok, saldo });
+        } else if (kelompok === "pendapatan") {
+          surplusDefisit += saldo;
+        } else if (kelompok === "beban") {
+          surplusDefisit -= saldo;
         }
       });
 
       return {
         items: neracaItems.sort((a, b) => a.kode.localeCompare(b.kode)),
-        labaRugi,
+        surplusDefisit,
       };
     },
   });
 
   const items = data?.items || [];
-  const labaRugi = data?.labaRugi || 0;
+  const surplusDefisit = data?.surplusDefisit || 0;
 
   const filterSaldo = (list: AkunNeraca[]) =>
     showZero ? list : list.filter((a) => Math.abs(a.saldo) >= 1);
 
-  const aset = filterSaldo(items.filter((a) => a.jenis === "aset"));
-  const liabilitas = filterSaldo(items.filter((a) => a.jenis === "liabilitas"));
-  const ekuitas = filterSaldo(items.filter((a) => a.jenis === "ekuitas"));
+  const aset = filterSaldo(items.filter((a) => a.kelompok === "aset"));
+  const kewajiban = filterSaldo(items.filter((a) => a.kelompok === "kewajiban"));
+  const asetNeto = filterSaldo(items.filter((a) => a.kelompok === "aset_neto"));
 
-  const totalAset = items.filter((a) => a.jenis === "aset").reduce((s, a) => s + a.saldo, 0);
-  const totalLiabilitas = items.filter((a) => a.jenis === "liabilitas").reduce((s, a) => s + a.saldo, 0);
-  const totalEkuitasAkun = items.filter((a) => a.jenis === "ekuitas").reduce((s, a) => s + a.saldo, 0);
-  const totalEkuitas = totalEkuitasAkun + labaRugi;
-  const totalLE = totalLiabilitas + totalEkuitas;
-  const seimbang = Math.abs(totalAset - totalLE) < 1;
+  const totalAset = items.filter((a) => a.kelompok === "aset").reduce((s, a) => s + a.saldo, 0);
+  const totalKewajiban = items.filter((a) => a.kelompok === "kewajiban").reduce((s, a) => s + a.saldo, 0);
+  const totalAsetNetoAkun = items.filter((a) => a.kelompok === "aset_neto").reduce((s, a) => s + a.saldo, 0);
+  // Sesuai ISAK 35: Total Aset Neto = saldo akun aset neto + surplus/defisit berjalan
+  const totalAsetNeto = totalAsetNetoAkun + surplusDefisit;
+  const totalKA = totalKewajiban + totalAsetNeto;
+  const seimbang = Math.abs(totalAset - totalKA) < 1;
 
   const exportData = [
     ...items,
-    ...(Math.abs(labaRugi) >= 1 ? [{ kode: "", nama: "Laba (Rugi) Berjalan", jenis: "ekuitas", saldo: labaRugi }] : []),
+    ...(Math.abs(surplusDefisit) >= 1
+      ? [{ kode: "", nama: "Surplus (Defisit) Berjalan", kelompok: "aset_neto", saldo: surplusDefisit }]
+      : []),
   ];
 
   return (
@@ -153,7 +200,7 @@ export default function TabNeracaAkuntansi({ departemenId }: { departemenId?: st
           columns={[
             { key: "kode", label: "Kode" },
             { key: "nama", label: "Nama Akun" },
-            { key: "jenis", label: "Jenis" },
+            { key: "kelompok", label: "Kelompok ISAK 35" },
             { key: "saldo", label: "Saldo" },
           ]}
         />
@@ -171,7 +218,7 @@ export default function TabNeracaAkuntansi({ departemenId }: { departemenId?: st
               </div>
 
               <div className="grid gap-6 lg:grid-cols-2">
-                {/* Kiri: Aset */}
+                {/* Kiri: ASET */}
                 <div>
                   <h3 className="font-semibold mb-2">ASET</h3>
                   {aset.map((a) => (
@@ -189,40 +236,44 @@ export default function TabNeracaAkuntansi({ departemenId }: { departemenId?: st
                   </div>
                 </div>
 
-                {/* Kanan: Liabilitas + Ekuitas */}
+                {/* Kanan: LIABILITAS + ASET NETO (ISAK 35) */}
                 <div>
                   <h3 className="font-semibold mb-2">LIABILITAS</h3>
-                  {liabilitas.map((a) => (
+                  {kewajiban.map((a) => (
                     <div key={a.kode} className="flex justify-between py-1 pl-4 text-sm">
                       <span>{a.kode} {a.nama}</span>
                       <span className="font-medium">{formatRupiah(a.saldo)}</span>
                     </div>
                   ))}
-                  {liabilitas.length === 0 && <p className="text-sm text-muted-foreground pl-4">Tidak ada data</p>}
+                  {kewajiban.length === 0 && <p className="text-sm text-muted-foreground pl-4">Tidak ada data</p>}
                   <div className="border-t mt-2 pt-2 flex justify-between font-bold">
-                    <span>Total Liabilitas</span><span>{formatRupiah(totalLiabilitas)}</span>
+                    <span>Total Liabilitas</span><span>{formatRupiah(totalKewajiban)}</span>
                   </div>
 
-                  <h3 className="font-semibold mb-2 mt-4">EKUITAS</h3>
-                  {ekuitas.map((a) => (
+                  <h3 className="font-semibold mb-2 mt-4">ASET NETO</h3>
+                  {asetNeto.map((a) => (
                     <div key={a.kode} className="flex justify-between py-1 pl-4 text-sm">
                       <span>{a.kode} {a.nama}</span>
                       <span className="font-medium">{formatRupiah(a.saldo)}</span>
                     </div>
                   ))}
-                  {Math.abs(labaRugi) >= 1 && (
+                  {Math.abs(surplusDefisit) >= 1 && (
                     <div className="flex justify-between py-1 pl-4 text-sm italic">
-                      <span>Laba (Rugi) Berjalan</span>
-                      <span className={cn("font-medium", labaRugi < 0 && "text-destructive")}>{formatRupiah(labaRugi)}</span>
+                      <span>Surplus (Defisit) Berjalan</span>
+                      <span className={cn("font-medium", surplusDefisit < 0 && "text-destructive")}>
+                        {formatRupiah(surplusDefisit)}
+                      </span>
                     </div>
                   )}
-                  {ekuitas.length === 0 && Math.abs(labaRugi) < 1 && <p className="text-sm text-muted-foreground pl-4">Tidak ada data</p>}
+                  {asetNeto.length === 0 && Math.abs(surplusDefisit) < 1 && (
+                    <p className="text-sm text-muted-foreground pl-4">Tidak ada data</p>
+                  )}
                   <div className="border-t mt-2 pt-2 flex justify-between font-bold">
-                    <span>Total Ekuitas</span><span>{formatRupiah(totalEkuitas)}</span>
+                    <span>Total Aset Neto</span><span>{formatRupiah(totalAsetNeto)}</span>
                   </div>
 
                   <div className="border-t-2 border-double mt-4 pt-2 flex justify-between font-bold text-base">
-                    <span>TOTAL L + E</span><span>{formatRupiah(totalLE)}</span>
+                    <span>TOTAL LIABILITAS + ASET NETO</span><span>{formatRupiah(totalKA)}</span>
                   </div>
                 </div>
               </div>
@@ -236,7 +287,7 @@ export default function TabNeracaAkuntansi({ departemenId }: { departemenId?: st
               </Badge>
             ) : (
               <Badge variant="destructive" className="text-sm px-4 py-1">
-                ⚠ Neraca Tidak Seimbang (selisih: {formatRupiah(Math.abs(totalAset - totalLE))})
+                ⚠ Neraca Tidak Seimbang (selisih: {formatRupiah(Math.abs(totalAset - totalKA))})
               </Badge>
             )}
           </div>
