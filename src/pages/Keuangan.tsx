@@ -29,6 +29,7 @@ const links = [
   { label: "Pembayaran PSB", url: "/keuangan/pembayaran-psb" },
   { label: "Referensi", url: "/keuangan/referensi" },
   { label: "Tutup Buku", url: "/keuangan/tutup-buku" },
+  { label: "Rekon Antar Lembaga", url: "/keuangan/rekon-antar-lembaga" },
 ];
 
 export default function Keuangan() {
