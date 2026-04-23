@@ -53,6 +53,69 @@ export default function JurnalUmum() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [postId, setPostId] = useState<string | null>(null);
 
+  // Jurnal Koreksi state
+  const [koreksiOpen, setKoreksiOpen] = useState(false);
+  const [koreksiTarget, setKoreksiTarget] = useState<any>(null);
+  const [tanggalKoreksi, setTanggalKoreksi] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [alasanKoreksi, setAlasanKoreksi] = useState("");
+  const [buatPengganti, setBuatPengganti] = useState(false);
+  const [penggantiKeterangan, setPenggantiKeterangan] = useState("");
+  const [penggantiReferensi, setPenggantiReferensi] = useState("");
+  const [penggantiDetails, setPenggantiDetails] = useState<DetailRow[]>([
+    { akun_id: "", keterangan: "", debit: 0, kredit: 0 },
+    { akun_id: "", keterangan: "", debit: 0, kredit: 0 },
+  ]);
+  const koreksiMut = useKoreksiJurnal();
+  const { data: koreksiTargetDetail } = useJurnalDetail(koreksiTarget?.id);
+
+  const openKoreksi = (item: any) => {
+    setKoreksiTarget(item);
+    setTanggalKoreksi(format(new Date(), "yyyy-MM-dd"));
+    setAlasanKoreksi("");
+    setBuatPengganti(false);
+    setPenggantiKeterangan(`KOREKSI ${item.keterangan}`);
+    setPenggantiReferensi(item.nomor || "");
+    setPenggantiDetails([
+      { akun_id: "", keterangan: "", debit: 0, kredit: 0 },
+      { akun_id: "", keterangan: "", debit: 0, kredit: 0 },
+    ]);
+    setKoreksiOpen(true);
+  };
+
+  const totalPenggantiDebit = penggantiDetails.reduce((s, d) => s + (d.debit || 0), 0);
+  const totalPenggantiKredit = penggantiDetails.reduce((s, d) => s + (d.kredit || 0), 0);
+  const isPenggantiBalanced = Math.abs(totalPenggantiDebit - totalPenggantiKredit) < 0.01 && totalPenggantiDebit > 0;
+
+  const handleKoreksi = async () => {
+    if (!koreksiTarget || !alasanKoreksi.trim()) return;
+    await koreksiMut.mutateAsync({
+      jurnal_asal_id: koreksiTarget.id,
+      tanggal_koreksi: tanggalKoreksi,
+      alasan: alasanKoreksi,
+      ...(buatPengganti && isPenggantiBalanced ? {
+        pengganti: {
+          keterangan: penggantiKeterangan,
+          referensi: penggantiReferensi,
+          details: penggantiDetails.filter(d => d.akun_id).map((d, i) => ({ ...d, urutan: i + 1 })),
+        },
+      } : {}),
+    });
+    setKoreksiOpen(false);
+    setKoreksiTarget(null);
+  };
+
+  const addPenggantiRow = () =>
+    setPenggantiDetails([...penggantiDetails, { akun_id: "", keterangan: "", debit: 0, kredit: 0 }]);
+  const removePenggantiRow = (i: number) => {
+    if (penggantiDetails.length > 2)
+      setPenggantiDetails(penggantiDetails.filter((_, idx) => idx !== i));
+  };
+  const updatePenggantiRow = (i: number, field: keyof DetailRow, value: any) => {
+    const next = [...penggantiDetails];
+    (next[i] as any)[field] = value;
+    setPenggantiDetails(next);
+  };
+
   const [tanggal, setTanggal] = useState(format(new Date(), "yyyy-MM-dd"));
   const [keterangan, setKeterangan] = useState("");
   const [referensi, setReferensi] = useState("");
