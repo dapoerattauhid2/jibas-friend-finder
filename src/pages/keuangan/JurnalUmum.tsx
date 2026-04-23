@@ -585,6 +585,190 @@ export default function JurnalUmum() {
 
       <ConfirmDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} title="Hapus Jurnal" description="Yakin ingin menghapus jurnal ini?" onConfirm={() => { if (deleteId) deleteMut.mutate(deleteId); setDeleteId(null); }} />
       <ConfirmDialog open={!!postId} onOpenChange={() => setPostId(null)} title="Posting Jurnal" description="Jurnal yang sudah diposting tidak bisa diedit lagi. Lanjutkan?" onConfirm={() => { if (postId) postMut.mutate(postId); setPostId(null); }} />
+
+      {/* Dialog Jurnal Koreksi */}
+      <Dialog open={koreksiOpen} onOpenChange={(v) => { setKoreksiOpen(v); if (!v) setKoreksiTarget(null); }}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-warning" />
+              Buat Jurnal Koreksi
+              {koreksiTarget?.nomor && (
+                <Badge variant="outline" className="font-mono">{koreksiTarget.nomor}</Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Info jurnal asli */}
+            <div className="rounded-md border border-warning/30 bg-warning/5 p-3 space-y-2">
+              <p className="text-sm font-semibold text-warning">⚠ Jurnal Asli yang Akan Dikoreksi</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div><span className="text-muted-foreground">Nomor:</span> <span className="font-medium">{koreksiTarget?.nomor}</span></div>
+                <div><span className="text-muted-foreground">Tanggal:</span> <span className="font-medium">{koreksiTarget?.tanggal ? format(new Date(koreksiTarget.tanggal), "d MMM yyyy", { locale: idLocale }) : "-"}</span></div>
+                <div><span className="text-muted-foreground">Total:</span> <span className="font-medium">{formatRupiah(Number(koreksiTarget?.total_debit) || 0)}</span></div>
+                <div><span className="text-muted-foreground">Lembaga:</span> <span className="font-medium">{koreksiTarget?.departemen?.kode || "-"}</span></div>
+              </div>
+              <p className="text-xs"><span className="text-muted-foreground">Keterangan:</span> <span className="font-medium">{koreksiTarget?.keterangan}</span></p>
+            </div>
+
+            {/* Preview detail jurnal asli */}
+            {koreksiTargetDetail?.details && (
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">Detail Jurnal Asli (akan dibalik debit↔kredit):</p>
+                <div className="border rounded-md overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="p-2 text-left">Akun</th>
+                        <th className="p-2 text-right">Debit Asli → Kredit Baru</th>
+                        <th className="p-2 text-right">Kredit Asli → Debit Baru</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {koreksiTargetDetail.details.map((d: any, i: number) => (
+                        <tr key={i} className="border-t">
+                          <td className="p-2">{d.akun_rekening?.kode} - {d.akun_rekening?.nama}</td>
+                          <td className="p-2 text-right">{Number(d.debit) > 0 ? formatRupiah(Number(d.debit)) : "-"}</td>
+                          <td className="p-2 text-right">{Number(d.kredit) > 0 ? formatRupiah(Number(d.kredit)) : "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Form koreksi */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Tanggal Koreksi *</Label>
+                <Input type="date" value={tanggalKoreksi} onChange={(e) => setTanggalKoreksi(e.target.value)} />
+              </div>
+              <div>
+                <Label>Alasan Koreksi *</Label>
+                <Textarea
+                  rows={2}
+                  placeholder="Jelaskan alasan koreksi..."
+                  value={alasanKoreksi}
+                  onChange={(e) => setAlasanKoreksi(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Toggle jurnal pengganti */}
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={buatPengganti}
+                onChange={(e) => setBuatPengganti(e.target.checked)}
+                className="h-4 w-4 rounded mt-0.5"
+              />
+              <span className="text-sm">
+                Sekaligus buat jurnal pengganti yang benar
+                <span className="text-muted-foreground ml-1">(opsional — bisa dibuat manual nanti)</span>
+              </span>
+            </label>
+
+            {/* Form jurnal pengganti */}
+            {buatPengganti && (
+              <div className="rounded-md border bg-muted/20 p-3 space-y-3">
+                <p className="text-sm font-semibold">Jurnal Pengganti (akan disimpan sebagai Draft)</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Keterangan Jurnal Pengganti *</Label>
+                    <Input value={penggantiKeterangan} onChange={(e) => setPenggantiKeterangan(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Referensi</Label>
+                    <Input value={penggantiReferensi} onChange={(e) => setPenggantiReferensi(e.target.value)} />
+                  </div>
+                </div>
+                <div className="border rounded-md overflow-x-auto bg-background">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="p-2 text-left w-10">No</th>
+                        <th className="p-2 text-left min-w-[200px]">Akun</th>
+                        <th className="p-2 text-left min-w-[150px]">Keterangan</th>
+                        <th className="p-2 text-right w-32">Debit (Rp)</th>
+                        <th className="p-2 text-right w-32">Kredit (Rp)</th>
+                        <th className="p-2 w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {penggantiDetails.map((row, i) => (
+                        <tr key={i} className="border-t">
+                          <td className="p-2">{i + 1}</td>
+                          <td className="p-2">
+                            <Select value={row.akun_id} onValueChange={(v) => updatePenggantiRow(i, "akun_id", v)}>
+                              <SelectTrigger><SelectValue placeholder="Pilih akun" /></SelectTrigger>
+                              <SelectContent>
+                                {akunList?.map((a: any) => (
+                                  <SelectItem key={a.id} value={a.id}>{a.kode} - {a.nama}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-2">
+                            <Input value={row.keterangan} onChange={(e) => updatePenggantiRow(i, "keterangan", e.target.value)} placeholder="Ket. baris" />
+                          </td>
+                          <td className="p-2">
+                            <Input type="number" className="text-right" value={row.debit || ""} onChange={(e) => updatePenggantiRow(i, "debit", Number(e.target.value) || 0)} />
+                          </td>
+                          <td className="p-2">
+                            <Input type="number" className="text-right" value={row.kredit || ""} onChange={(e) => updatePenggantiRow(i, "kredit", Number(e.target.value) || 0)} />
+                          </td>
+                          <td className="p-2">
+                            {penggantiDetails.length > 2 && (
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removePenggantiRow(i)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t bg-muted/30 font-semibold">
+                      <tr>
+                        <td colSpan={3} className="p-2 text-right">Total</td>
+                        <td className="p-2 text-right">{formatRupiah(totalPenggantiDebit)}</td>
+                        <td className="p-2 text-right">{formatRupiah(totalPenggantiKredit)}</td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                {!isPenggantiBalanced && totalPenggantiDebit > 0 && (
+                  <p className="text-sm text-destructive font-medium">
+                    ⚠ Total Debit dan Kredit harus sama (selisih: {formatRupiah(Math.abs(totalPenggantiDebit - totalPenggantiKredit))})
+                  </p>
+                )}
+                <Button variant="outline" size="sm" onClick={addPenggantiRow}>
+                  <Plus className="h-4 w-4 mr-2" />Tambah Baris
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setKoreksiOpen(false); setKoreksiTarget(null); }}>
+              Batal
+            </Button>
+            <Button
+              onClick={handleKoreksi}
+              disabled={
+                !alasanKoreksi.trim() ||
+                koreksiMut.isPending ||
+                (buatPengganti && !isPenggantiBalanced)
+              }
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              {koreksiMut.isPending ? "Memproses..." : "Buat Jurnal Koreksi"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
