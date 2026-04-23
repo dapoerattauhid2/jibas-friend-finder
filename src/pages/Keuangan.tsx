@@ -26,6 +26,7 @@ const links = [
   { label: "Rekap Harian", url: "/keuangan/rekap-harian" },
   { label: "Online Payment", url: "/keuangan/online-payment" },
   { label: "Audit Trail", url: "/keuangan/audit-trail" },
+  { label: "Audit Perubahan Data", url: "/keuangan/audit-perubahan" },
   { label: "Pembayaran PSB", url: "/keuangan/pembayaran-psb" },
   { label: "Referensi", url: "/keuangan/referensi" },
   { label: "Tutup Buku", url: "/keuangan/tutup-buku" },

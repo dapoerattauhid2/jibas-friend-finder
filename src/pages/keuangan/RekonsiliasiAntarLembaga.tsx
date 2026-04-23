@@ -72,7 +72,7 @@ export default function RekonsiliasiAntarLembaga() {
         .from("v_rekon_antar_lembaga" as any)
         .select("*");
       if (error) throw error;
-      return (data || []) as SaldoRekon[];
+      return (data || []) as unknown as SaldoRekon[];
     },
   });
 
