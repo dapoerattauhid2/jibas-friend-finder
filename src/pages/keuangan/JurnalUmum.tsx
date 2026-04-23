@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,10 +129,63 @@ export default function JurnalUmum() {
 
   const lembagaNama = lembagaList?.find((l: any) => l.id === departemenId);
 
+  // Query jurnal IDs that contain a specific akun (when akunFilter is set)
+  const { data: jurnalIdsByAkun } = useQuery({
+    queryKey: ["jurnal_by_akun", akunFilter],
+    enabled: !!akunFilter,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("jurnal_detail")
+        .select("jurnal_id")
+        .eq("akun_id", akunFilter);
+      if (error) throw error;
+      return new Set((data || []).map((r: any) => r.jurnal_id));
+    },
+  });
+
+  const filteredJurnal = useMemo(() => {
+    let list = (jurnalList as any[]) || [];
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((j: any) =>
+        j.nomor?.toLowerCase().includes(q) ||
+        j.keterangan?.toLowerCase().includes(q) ||
+        j.referensi?.toLowerCase().includes(q)
+      );
+    }
+    if (statusFilter !== "semua") {
+      list = list.filter((j: any) => j.status === statusFilter);
+    }
+    if (tanggalDari) list = list.filter((j: any) => j.tanggal >= tanggalDari);
+    if (tanggalSampai) list = list.filter((j: any) => j.tanggal <= tanggalSampai);
+    if (akunFilter && jurnalIdsByAkun) {
+      list = list.filter((j: any) => jurnalIdsByAkun.has(j.id));
+    }
+    return list;
+  }, [jurnalList, searchQuery, statusFilter, tanggalDari, tanggalSampai, akunFilter, jurnalIdsByAkun]);
+
+  const totalJurnal = filteredJurnal.length;
+  const jurnalPosted = filteredJurnal.filter((j: any) => j.status === "posted").length;
+  const jurnalDraft = filteredJurnal.filter((j: any) => j.status === "draft").length;
+
   const activeFilters: ActiveFilter[] = [
     ...(departemenId ? [{
       key: "lembaga", label: "Lembaga", value: lembagaNama?.kode || lembagaNama?.nama || "",
       onClear: () => setDepartemenId(""),
+    }] : []),
+    ...(statusFilter !== "semua" ? [{
+      key: "status", label: "Status", value: statusFilter === "posted" ? "Posted" : "Draft",
+      onClear: () => setStatusFilter("semua"),
+    }] : []),
+    ...(akunFilter ? [{
+      key: "akun", label: "Akun",
+      value: akunList?.find((a: any) => a.id === akunFilter)?.kode || "—",
+      onClear: () => setAkunFilter(""),
+    }] : []),
+    ...(tanggalDari || tanggalSampai ? [{
+      key: "rentang", label: "Rentang",
+      value: `${tanggalDari || "…"} → ${tanggalSampai || "…"}`,
+      onClear: () => { setTanggalDari(""); setTanggalSampai(""); },
     }] : []),
     {
       key: "periode", label: "Periode", value: `${BULAN_NAMES[bulan - 1]} ${tahun}`,
