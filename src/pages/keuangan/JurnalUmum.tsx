@@ -275,6 +275,20 @@ export default function JurnalUmum() {
       ),
     },
     {
+      key: "tipe", label: "Tipe",
+      render: (v) => {
+        if (!v || v === "normal") return null;
+        const cfg: Record<string, { label: string; color: string }> = {
+          pembalik:  { label: "Pembalik",  color: "bg-destructive/15 text-destructive border-destructive/30" },
+          pengganti: { label: "Pengganti", color: "bg-info/15 text-info border-info/30" },
+        };
+        const c = cfg[v as string];
+        return c ? (
+          <Badge variant="outline" className={c.color}>{c.label}</Badge>
+        ) : null;
+      },
+    },
+    {
       key: "aksi", label: "Aksi",
       render: (_, r: any) => (
         <div className="flex gap-1" onClick={e => e.stopPropagation()}>
@@ -294,7 +308,18 @@ export default function JurnalUmum() {
               </Button>
             </>
           ) : (
-            <Lock className="h-4 w-4 text-muted-foreground ml-2 mt-2" />
+            <div className="flex items-center gap-1">
+              <Lock className="h-4 w-4 text-muted-foreground" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-warning hover:text-warning"
+                title="Buat jurnal koreksi/pembalik"
+                onClick={() => openKoreksi(r)}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </div>
       ),
