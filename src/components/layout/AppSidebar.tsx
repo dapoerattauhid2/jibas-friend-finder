@@ -85,6 +85,7 @@ const menuItems: MenuItem[] = [
       { title: "Akuntansi", url: "", isGroupLabel: true },
       { title: "Jurnal Umum", url: "/keuangan/jurnal", roles: ["admin", "kepala_sekolah", "keuangan"] },
       { title: "Buku Besar", url: "/keuangan/buku-besar", roles: ["admin", "kepala_sekolah", "keuangan"] },
+      { title: "Rekon Antar Lembaga", url: "/keuangan/rekon-antar-lembaga", roles: ["admin", "kepala_sekolah", "keuangan"] },
       { title: "Laporan ISAK 35", url: "", isGroupLabel: true },
       { title: "Ringkasan ISAK 35", url: "/keuangan/isak35", roles: ["admin", "kepala_sekolah", "keuangan"] },
       { title: "Penghasilan Komprehensif", url: "/keuangan/isak35/komprehensif", roles: ["admin", "kepala_sekolah", "keuangan"] },
