@@ -350,7 +350,19 @@ export default function JurnalUmum() {
       {/* Form Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editId ? "Edit" : "Buat"} Jurnal</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {editId ? (
+                <>
+                  Edit Jurnal
+                  {viewData?.nomor && (
+                    <Badge variant="outline" className="font-mono">{viewData.nomor}</Badge>
+                  )}
+                  <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Draft</Badge>
+                </>
+              ) : "Buat Jurnal Baru"}
+            </DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div><Label>Tanggal</Label><Input type="date" value={tanggal} onChange={e => setTanggal(e.target.value)} /></div>
