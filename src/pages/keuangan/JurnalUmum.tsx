@@ -247,11 +247,33 @@ export default function JurnalUmum() {
         </div>
       </div>
 
+      {/* Stats */}
+      <div className="grid gap-3 sm:grid-cols-3 mb-4">
+        <StatsCard title="Total Jurnal" value={totalJurnal} icon={BookOpen} color="info" />
+        <StatsCard title="Sudah Diposting" value={jurnalPosted} icon={CheckCircle} color="success" />
+        <StatsCard title="Masih Draft" value={jurnalDraft} icon={FileEdit} color="warning" />
+      </div>
+
       {/* Filter toolbar */}
       <div className="border-b border-border pb-3 mb-4">
         <FilterToolbar
           activeFilters={activeFilters}
-          actions={<Button size="sm" className="h-8 text-xs" onClick={openCreate}><Plus className="h-3.5 w-3.5 mr-1.5" />Buat Jurnal</Button>}
+          actions={
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Cari nomor / keterangan / referensi..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-8 text-xs w-72 pl-7"
+                />
+              </div>
+              <Button size="sm" className="h-8 text-xs" onClick={openCreate}>
+                <Plus className="h-3.5 w-3.5 mr-1.5" />Buat Jurnal
+              </Button>
+            </div>
+          }
         >
           <div className="space-y-3">
             <div className="space-y-1">
@@ -262,6 +284,29 @@ export default function JurnalUmum() {
                   <SelectItem value="__all__">Semua Lembaga</SelectItem>
                   {lembagaList?.map((l: any) => (
                     <SelectItem key={l.id} value={l.id}>{l.kode} — {l.nama}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Status</Label>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="semua">Semua Status</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="posted">Posted</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Akun</Label>
+              <Select value={akunFilter || "__all__"} onValueChange={(v) => setAkunFilter(v === "__all__" ? "" : v)}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Semua akun" /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="__all__">Semua Akun</SelectItem>
+                  {akunList?.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>{a.kode} — {a.nama}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -279,6 +324,14 @@ export default function JurnalUmum() {
               <Label className="text-xs">Tahun</Label>
               <Input type="number" className="h-8 text-xs" value={tahun} onChange={e => setTahun(Number(e.target.value))} />
             </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Dari Tanggal</Label>
+              <Input type="date" className="h-8 text-xs" value={tanggalDari} onChange={(e) => setTanggalDari(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Sampai Tanggal</Label>
+              <Input type="date" className="h-8 text-xs" value={tanggalSampai} onChange={(e) => setTanggalSampai(e.target.value)} />
+            </div>
           </div>
         </FilterToolbar>
       </div>
@@ -286,9 +339,12 @@ export default function JurnalUmum() {
       {/* Table — no Card wrapper */}
       <DataTable
         columns={columns}
-        data={jurnalList || []}
+        data={filteredJurnal}
         loading={isLoading}
         pageSize={20}
+        searchable={false}
+        exportable
+        exportFilename={`jurnal-${BULAN_NAMES[bulan - 1]}-${tahun}`}
       />
 
       {/* Form Dialog */}
