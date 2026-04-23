@@ -12,10 +12,10 @@ import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FilterToolbar, ActiveFilter } from "@/components/shared/FilterToolbar";
 import { Badge } from "@/components/ui/badge";
-import { useJurnalList, useJurnalDetail, useCreateJurnal, useUpdateJurnal, useDeleteJurnal, usePostJurnal, useAkunRekening } from "@/hooks/useJurnal";
+import { useJurnalList, useJurnalDetail, useCreateJurnal, useUpdateJurnal, useDeleteJurnal, usePostJurnal, useAkunRekening, useKoreksiJurnal } from "@/hooks/useJurnal";
 import { formatRupiah, BULAN_NAMES, BULAN_ORDER_AKADEMIK, namaBulan, useLembaga } from "@/hooks/useKeuangan";
 import { StatsCard } from "@/components/shared/StatsCard";
-import { Plus, Eye, Pencil, Trash2, Lock, Send, Search, BookOpen, CheckCircle, FileEdit } from "lucide-react";
+import { Plus, Eye, Pencil, Trash2, Lock, Send, Search, BookOpen, CheckCircle, FileEdit, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
