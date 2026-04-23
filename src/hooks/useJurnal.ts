@@ -412,6 +412,144 @@ export function useAuditKeuangan(filters: {
   });
 }
 
+// ─── Jurnal Koreksi / Pembalik ───
+export function useKoreksiJurnal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (values: {
+      jurnal_asal_id: string;
+      tanggal_koreksi: string;
+      alasan: string;
+      pengganti?: {
+        keterangan: string;
+        referensi?: string;
+        details: { akun_id: string; keterangan?: string; debit: number; kredit: number; urutan: number }[];
+      };
+    }) => {
+      const { data: jurnalAsal, error: e1 } = await supabase
+        .from("jurnal")
+        .select("*, departemen:departemen_id(nama, kode)")
+        .eq("id", values.jurnal_asal_id)
+        .single();
+      if (e1) throw e1;
+      if ((jurnalAsal as any).status !== "posted")
+        throw new Error("Hanya jurnal yang sudah diposting yang bisa dikoreksi dengan cara ini.");
+
+      const { data: detailAsal, error: e2 } = await supabase
+        .from("jurnal_detail")
+        .select("*")
+        .eq("jurnal_id", values.jurnal_asal_id)
+        .order("urutan");
+      if (e2) throw e2;
+
+      await checkPeriodeLocked(values.tanggal_koreksi);
+
+      const tahun = new Date(values.tanggal_koreksi).getFullYear();
+      const nomorPembalik = await generateNomorJurnal(tahun);
+      const totalAsal = Number((jurnalAsal as any).total_debit) || 0;
+
+      const { data: jurnalPembalik, error: e3 } = await supabase
+        .from("jurnal")
+        .insert({
+          nomor: nomorPembalik,
+          tanggal: values.tanggal_koreksi,
+          keterangan: `KOREKSI: ${(jurnalAsal as any).keterangan}`,
+          referensi: (jurnalAsal as any).nomor,
+          departemen_id: (jurnalAsal as any).departemen_id,
+          program_dana_id: (jurnalAsal as any).program_dana_id,
+          total_debit: totalAsal,
+          total_kredit: totalAsal,
+          status: "posted",
+          tipe: "pembalik",
+          jurnal_asal_id: values.jurnal_asal_id,
+        } as any)
+        .select()
+        .single();
+      if (e3) throw e3;
+
+      const detailPembalik = (detailAsal as any[]).map((d, i) => ({
+        jurnal_id: (jurnalPembalik as any).id,
+        akun_id: d.akun_id,
+        debit: Number(d.kredit) || 0,
+        kredit: Number(d.debit) || 0,
+        keterangan: d.keterangan ? `[BALIK] ${d.keterangan}` : "[BALIK]",
+        urutan: i + 1,
+      }));
+      const { error: e4 } = await supabase.from("jurnal_detail").insert(detailPembalik);
+      if (e4) throw e4;
+
+      await logAuditKeuangan({
+        tabel_sumber: "jurnal",
+        record_id: (jurnalPembalik as any).id,
+        aksi: "CREATE",
+        data_baru: {
+          tipe: "pembalik",
+          jurnal_asal: (jurnalAsal as any).nomor,
+          alasan: values.alasan,
+        },
+        keterangan: `Jurnal koreksi pembalik untuk ${(jurnalAsal as any).nomor}: ${values.alasan}`,
+        departemen_id: (jurnalAsal as any).departemen_id,
+      });
+
+      let jurnalPengganti: any = null;
+      if (values.pengganti && values.pengganti.details.length > 0) {
+        const totalPengganti = values.pengganti.details.reduce((s, d) => s + d.debit, 0);
+        const nomorPengganti = await generateNomorJurnal(tahun);
+
+        const { data: jp, error: e5 } = await supabase
+          .from("jurnal")
+          .insert({
+            nomor: nomorPengganti,
+            tanggal: values.tanggal_koreksi,
+            keterangan: values.pengganti.keterangan,
+            referensi: values.pengganti.referensi || (jurnalAsal as any).nomor,
+            departemen_id: (jurnalAsal as any).departemen_id,
+            program_dana_id: (jurnalAsal as any).program_dana_id,
+            total_debit: totalPengganti,
+            total_kredit: totalPengganti,
+            status: "draft",
+            tipe: "pengganti",
+            jurnal_asal_id: values.jurnal_asal_id,
+          } as any)
+          .select()
+          .single();
+        if (e5) throw e5;
+
+        const rowsPengganti = values.pengganti.details.map((d) => ({
+          ...d,
+          jurnal_id: (jp as any).id,
+        }));
+        const { error: e6 } = await supabase.from("jurnal_detail").insert(rowsPengganti);
+        if (e6) throw e6;
+
+        jurnalPengganti = jp;
+
+        await logAuditKeuangan({
+          tabel_sumber: "jurnal",
+          record_id: (jp as any).id,
+          aksi: "CREATE",
+          data_baru: { tipe: "pengganti", jurnal_asal: (jurnalAsal as any).nomor },
+          keterangan: `Jurnal koreksi pengganti untuk ${(jurnalAsal as any).nomor}`,
+          departemen_id: (jurnalAsal as any).departemen_id,
+        });
+      }
+
+      return { jurnalPembalik, jurnalPengganti };
+    },
+    onSuccess: (result: any) => {
+      qc.invalidateQueries({ queryKey: ["jurnal"] });
+      qc.invalidateQueries({ queryKey: ["buku_besar"] });
+      const pesanPengganti = result.jurnalPengganti
+        ? ` dan jurnal pengganti ${(result.jurnalPengganti as any).nomor} (draft) berhasil dibuat`
+        : "";
+      toast.success(
+        `Jurnal pembalik ${(result.jurnalPembalik as any).nomor} berhasil dibuat${pesanPengganti}`
+      );
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+}
+
 // ─── Pengaturan Akun Sistem ───
 export function usePengaturanAkun() {
   return useQuery({

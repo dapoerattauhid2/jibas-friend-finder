@@ -631,12 +631,14 @@ export type Database = {
           departemen_id: string | null
           dibuat_oleh: string | null
           id: string
+          jurnal_asal_id: string | null
           keterangan: string
           nomor: string | null
           program_dana_id: string | null
           referensi: string | null
           status: string | null
           tanggal: string
+          tipe: string | null
           total_debit: number | null
           total_kredit: number | null
         }
@@ -645,12 +647,14 @@ export type Database = {
           departemen_id?: string | null
           dibuat_oleh?: string | null
           id?: string
+          jurnal_asal_id?: string | null
           keterangan: string
           nomor?: string | null
           program_dana_id?: string | null
           referensi?: string | null
           status?: string | null
           tanggal: string
+          tipe?: string | null
           total_debit?: number | null
           total_kredit?: number | null
         }
@@ -659,12 +663,14 @@ export type Database = {
           departemen_id?: string | null
           dibuat_oleh?: string | null
           id?: string
+          jurnal_asal_id?: string | null
           keterangan?: string
           nomor?: string | null
           program_dana_id?: string | null
           referensi?: string | null
           status?: string | null
           tanggal?: string
+          tipe?: string | null
           total_debit?: number | null
           total_kredit?: number | null
         }
@@ -710,6 +716,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pegawai"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jurnal_jurnal_asal_id_fkey"
+            columns: ["jurnal_asal_id"]
+            isOneToOne: false
+            referencedRelation: "jurnal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jurnal_jurnal_asal_id_fkey"
+            columns: ["jurnal_asal_id"]
+            isOneToOne: false
+            referencedRelation: "v_rekon_belum_match"
+            referencedColumns: ["jurnal_id"]
           },
           {
             foreignKeyName: "jurnal_program_dana_id_fkey"
