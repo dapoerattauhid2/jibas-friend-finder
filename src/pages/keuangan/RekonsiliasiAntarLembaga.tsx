@@ -146,6 +146,36 @@ export default function RekonsiliasiAntarLembaga() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  // ─── Mutation: Auto Match (1-klik, pakai fn_match_jurnal_pasangan)
+  const autoMatch = useMutation({
+    mutationFn: async (row: JurnalBelumMatch) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.rpc("fn_match_jurnal_pasangan" as any, {
+        p_jurnal_id: row.jurnal_id,
+        p_akun_kode: row.akun_kode,
+        p_user_id: user?.id ?? null,
+        p_hari_toleransi: 14,
+      });
+      if (error) throw error;
+      const result = data as any;
+      if (!result?.ok) throw new Error(result?.pesan || "Gagal auto-match");
+      return result;
+    },
+    onSuccess: (result) => {
+      toast.success(
+        `✅ ${result.nomor_pasangan} (${result.departemen}) · Rp ${Number(result.jumlah).toLocaleString("id-ID")} · Skor ${result.skor}`
+      );
+      qc.invalidateQueries({ queryKey: ["rekon_belum_match"] });
+      qc.invalidateQueries({ queryKey: ["rekon_pasangan"] });
+      qc.invalidateQueries({ queryKey: ["rekon_saldo"] });
+      if (selectedJurnal?.jurnal_id === result.jurnal_id_a) {
+        setSelectedJurnal(null);
+        setSelectedKandidat(null);
+      }
+    },
+    onError: (e: any) => toast.error(`Auto-match gagal: ${e.message}`),
+  });
+
   // ─── Mutation: Hapus pasangan
   const deletePasangan = useMutation({
     mutationFn: async (id: string) => {
@@ -233,19 +263,33 @@ export default function RekonsiliasiAntarLembaga() {
     { key: "keterangan", label: "Keterangan", render: (v) => <span className="text-xs text-muted-foreground truncate max-w-[200px] block">{v as string}</span> },
     {
       key: "_aksi", label: "",
-      render: (_, r) => (
-        <Button
-          size="sm"
-          variant={selectedJurnal?.jurnal_id === r.jurnal_id ? "default" : "outline"}
-          className="text-xs h-7"
-          onClick={() => {
-            setSelectedJurnal(selectedJurnal?.jurnal_id === r.jurnal_id ? null : r as JurnalBelumMatch);
-            setSelectedKandidat(null);
-          }}
-        >
-          {selectedJurnal?.jurnal_id === r.jurnal_id ? "✓ Dipilih" : "Cari Pasangan"}
-        </Button>
-      ),
+      render: (_, r) => {
+        const isAutoLoading = autoMatch.isPending && (autoMatch.variables as JurnalBelumMatch)?.jurnal_id === r.jurnal_id;
+        return (
+          <div className="flex gap-1.5">
+            <Button
+              size="sm"
+              className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+              disabled={autoMatch.isPending}
+              onClick={(e) => { e.stopPropagation(); autoMatch.mutate(r as JurnalBelumMatch); }}
+            >
+              {isAutoLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
+              Auto
+            </Button>
+            <Button
+              size="sm"
+              variant={selectedJurnal?.jurnal_id === r.jurnal_id ? "default" : "outline"}
+              className="text-xs h-7"
+              onClick={() => {
+                setSelectedJurnal(selectedJurnal?.jurnal_id === r.jurnal_id ? null : r as JurnalBelumMatch);
+                setSelectedKandidat(null);
+              }}
+            >
+              {selectedJurnal?.jurnal_id === r.jurnal_id ? "✓ Dipilih" : "Manual"}
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 
