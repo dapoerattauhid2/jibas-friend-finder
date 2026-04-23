@@ -97,6 +97,7 @@ const menuItems: MenuItem[] = [
       { title: "Pengakuan Pendapatan", url: "/keuangan/pengakuan-pendapatan", roles: ["admin", "kepala_sekolah", "keuangan"] },
       { title: "Pengaturan", url: "", isGroupLabel: true },
       { title: "Audit Trail", url: "/keuangan/audit-trail", roles: ["admin", "kepala_sekolah", "keuangan"] },
+      { title: "Audit Perubahan Data", url: "/keuangan/audit-perubahan", roles: ["admin", "kepala_sekolah", "keuangan"] },
       { title: "Referensi", url: "/keuangan/referensi", roles: ["admin", "kepala_sekolah", "keuangan"] },
     ],
   },

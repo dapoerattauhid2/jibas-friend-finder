@@ -251,6 +251,84 @@ export type Database = {
           },
         ]
       }
+      audit_keuangan: {
+        Row: {
+          aksi: string
+          created_at: string
+          data_baru: Json | null
+          data_lama: Json | null
+          departemen_id: string | null
+          dibuat_oleh: string | null
+          id: string
+          keterangan: string | null
+          nama_pengguna: string | null
+          record_id: string
+          tabel_sumber: string
+        }
+        Insert: {
+          aksi: string
+          created_at?: string
+          data_baru?: Json | null
+          data_lama?: Json | null
+          departemen_id?: string | null
+          dibuat_oleh?: string | null
+          id?: string
+          keterangan?: string | null
+          nama_pengguna?: string | null
+          record_id: string
+          tabel_sumber: string
+        }
+        Update: {
+          aksi?: string
+          created_at?: string
+          data_baru?: Json | null
+          data_lama?: Json | null
+          departemen_id?: string | null
+          dibuat_oleh?: string | null
+          id?: string
+          keterangan?: string | null
+          nama_pengguna?: string | null
+          record_id?: string
+          tabel_sumber?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_keuangan_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "departemen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_keuangan_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_rekap_keuangan_lembaga"
+            referencedColumns: ["departemen_id"]
+          },
+          {
+            foreignKeyName: "audit_keuangan_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_rekon_antar_lembaga"
+            referencedColumns: ["departemen_id"]
+          },
+          {
+            foreignKeyName: "audit_keuangan_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_rekon_belum_match"
+            referencedColumns: ["departemen_id"]
+          },
+          {
+            foreignKeyName: "audit_keuangan_departemen_id_fkey"
+            columns: ["departemen_id"]
+            isOneToOne: false
+            referencedRelation: "v_tagihan_belum_bayar"
+            referencedColumns: ["departemen_id"]
+          },
+        ]
+      }
       departemen: {
         Row: {
           akreditasi: string | null

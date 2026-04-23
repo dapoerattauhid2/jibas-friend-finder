@@ -224,7 +224,11 @@ export function useUpdateJurnal() {
       // Check period lock
       await checkPeriodeLocked(values.tanggal);
 
-      const { data: existing } = await supabase.from("jurnal").select("status").eq("id", values.id).single();
+      const { data: existing } = await supabase
+        .from("jurnal")
+        .select("status, nomor, keterangan, tanggal, total_debit, total_kredit, referensi")
+        .eq("id", values.id)
+        .single();
       if ((existing as any)?.status === "posted") throw new Error("Jurnal yang sudah diposting tidak bisa diedit");
 
       const { error: jErr } = await supabase
@@ -244,6 +248,22 @@ export function useUpdateJurnal() {
       const rows = values.details.map((d) => ({ ...d, jurnal_id: values.id }));
       const { error: dErr } = await supabase.from("jurnal_detail").insert(rows);
       if (dErr) throw dErr;
+
+      await logAuditKeuangan({
+        tabel_sumber: "jurnal",
+        record_id: values.id,
+        aksi: "UPDATE",
+        data_lama: existing,
+        data_baru: {
+          tanggal: values.tanggal,
+          keterangan: values.keterangan,
+          referensi: values.referensi,
+          total_debit: totalDebit,
+          total_kredit: totalKredit,
+        },
+        keterangan: `Edit jurnal ${(existing as any)?.nomor || values.id}`,
+        departemen_id: values.departemen_id,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["jurnal"] });
@@ -257,10 +277,23 @@ export function useDeleteJurnal() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { data: existing } = await supabase.from("jurnal").select("status").eq("id", id).single();
+      const { data: existing } = await supabase
+        .from("jurnal")
+        .select("status, nomor, keterangan, tanggal, total_debit, departemen_id")
+        .eq("id", id)
+        .single();
       if ((existing as any)?.status === "posted") throw new Error("Jurnal yang sudah diposting tidak bisa dihapus");
       const { error } = await supabase.from("jurnal").delete().eq("id", id);
       if (error) throw error;
+
+      await logAuditKeuangan({
+        tabel_sumber: "jurnal",
+        record_id: id,
+        aksi: "DELETE",
+        data_lama: existing,
+        keterangan: `Hapus jurnal ${(existing as any)?.nomor || id}`,
+        departemen_id: (existing as any)?.departemen_id,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["jurnal"] });
@@ -274,8 +307,22 @@ export function usePostJurnal() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      const { data: existing } = await supabase
+        .from("jurnal")
+        .select("nomor, departemen_id")
+        .eq("id", id)
+        .single();
       const { error } = await supabase.from("jurnal").update({ status: "posted" }).eq("id", id);
       if (error) throw error;
+
+      await logAuditKeuangan({
+        tabel_sumber: "jurnal",
+        record_id: id,
+        aksi: "POST",
+        data_baru: { status: "posted" },
+        keterangan: `Posting jurnal ${(existing as any)?.nomor || id}`,
+        departemen_id: (existing as any)?.departemen_id,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["jurnal"] });
@@ -283,6 +330,85 @@ export function usePostJurnal() {
       toast.success("Jurnal berhasil diposting");
     },
     onError: (e: any) => toast.error(e.message),
+  });
+}
+
+// ─── Audit Keuangan ───
+export async function logAuditKeuangan(params: {
+  tabel_sumber: string;
+  record_id: string;
+  aksi: "CREATE" | "UPDATE" | "DELETE" | "POST";
+  data_lama?: any;
+  data_baru?: any;
+  keterangan?: string;
+  departemen_id?: string;
+  nama_pengguna?: string;
+}) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    await (supabase.from("audit_keuangan" as any).insert as any)({
+      tabel_sumber: params.tabel_sumber,
+      record_id: params.record_id,
+      aksi: params.aksi,
+      data_lama: params.data_lama || null,
+      data_baru: params.data_baru || null,
+      keterangan: params.keterangan || null,
+      departemen_id: params.departemen_id || null,
+      dibuat_oleh: user?.id || null,
+      nama_pengguna: params.nama_pengguna || user?.email || "System",
+    });
+  } catch (err) {
+    // best-effort; jangan gagalkan operasi utama
+    console.warn("logAuditKeuangan failed:", err);
+  }
+}
+
+export function useAuditKeuangan(filters: {
+  tabelSumber?: string;
+  aksi?: string;
+  tanggalDari?: string;
+  tanggalSampai?: string;
+  departemenId?: string;
+  searchQuery?: string;
+}) {
+  return useQuery({
+    queryKey: ["audit_keuangan", filters],
+    queryFn: async () => {
+      let q: any = (supabase.from("audit_keuangan" as any).select("*") as any)
+        .order("created_at", { ascending: false });
+
+      if (filters.tabelSumber && filters.tabelSumber !== "semua") {
+        q = q.eq("tabel_sumber", filters.tabelSumber);
+      }
+      if (filters.aksi && filters.aksi !== "semua") {
+        q = q.eq("aksi", filters.aksi);
+      }
+      if (filters.tanggalDari) {
+        q = q.gte("created_at", `${filters.tanggalDari}T00:00:00`);
+      }
+      if (filters.tanggalSampai) {
+        q = q.lte("created_at", `${filters.tanggalSampai}T23:59:59`);
+      }
+      if (filters.departemenId) {
+        q = q.eq("departemen_id", filters.departemenId);
+      }
+
+      const { data, error } = await q.limit(500);
+      if (error) throw error;
+
+      let rows = (data || []) as any[];
+      if (filters.searchQuery?.trim()) {
+        const sq = filters.searchQuery.toLowerCase();
+        rows = rows.filter((r: any) =>
+          r.record_id?.toLowerCase().includes(sq) ||
+          r.keterangan?.toLowerCase().includes(sq) ||
+          r.nama_pengguna?.toLowerCase().includes(sq) ||
+          JSON.stringify(r.data_lama || {}).toLowerCase().includes(sq) ||
+          JSON.stringify(r.data_baru || {}).toLowerCase().includes(sq)
+        );
+      }
+      return rows;
+    },
   });
 }
 
