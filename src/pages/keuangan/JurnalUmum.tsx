@@ -12,7 +12,8 @@ import { FilterToolbar, ActiveFilter } from "@/components/shared/FilterToolbar";
 import { Badge } from "@/components/ui/badge";
 import { useJurnalList, useJurnalDetail, useCreateJurnal, useUpdateJurnal, useDeleteJurnal, usePostJurnal, useAkunRekening } from "@/hooks/useJurnal";
 import { formatRupiah, BULAN_NAMES, BULAN_ORDER_AKADEMIK, namaBulan, useLembaga } from "@/hooks/useKeuangan";
-import { Plus, Eye, Pencil, Trash2, Lock, Send } from "lucide-react";
+import { StatsCard } from "@/components/shared/StatsCard";
+import { Plus, Eye, Pencil, Trash2, Lock, Send, Search, BookOpen, CheckCircle, FileEdit } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
@@ -30,6 +31,11 @@ export default function JurnalUmum() {
   const [bulan, setBulan] = useState(currentMonth);
   const [tahun, setTahun] = useState(currentYear);
   const [departemenId, setDepartemenId] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"semua" | "draft" | "posted">("semua");
+  const [akunFilter, setAkunFilter] = useState("");
+  const [tanggalDari, setTanggalDari] = useState("");
+  const [tanggalSampai, setTanggalSampai] = useState("");
   const { data: lembagaList } = useLembaga();
   const { data: jurnalList, isLoading } = useJurnalList(bulan, tahun, departemenId || undefined);
   const { data: akunList } = useAkunRekening();
