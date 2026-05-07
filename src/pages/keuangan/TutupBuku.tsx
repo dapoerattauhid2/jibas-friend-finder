@@ -58,6 +58,7 @@ export default function TutupBuku() {
       const tahunSelesai = selectedTA?.tanggal_selesai;
       if (!tahunMulai || !tahunSelesai) return [];
 
+      // Ambil daftar akun (jumlah kecil, tidak kena limit)
       const { data: akun } = await supabase
         .from("akun_rekening")
         .select("id, kode, nama, jenis, saldo_normal, saldo_awal")
@@ -66,32 +67,30 @@ export default function TutupBuku() {
 
       if (!akun?.length) return [];
 
-      const { data: jurnalList } = await supabase
-        .from("jurnal")
-        .select("id")
-        .gte("tanggal", tahunMulai)
-        .lte("tanggal", tahunSelesai)
-        .eq("status", "posted");
+      // Agregasi mutasi di DB via RPC — bebas dari batas 1.000 row
+      const { data: mutasiRows, error: mutasiErr } = await (supabase as any)
+        .rpc("hitung_saldo_akun_periode", {
+          p_tanggal_mulai: tahunMulai,
+          p_tanggal_selesai: tahunSelesai,
+        });
+      if (mutasiErr) throw mutasiErr;
 
-      const jurnalIds = jurnalList?.map(j => j.id) || [];
-
-      let details: any[] = [];
-      if (jurnalIds.length > 0) {
-        const { data } = await supabase
-          .from("jurnal_detail")
-          .select("akun_id, debit, kredit")
-          .in("jurnal_id", jurnalIds);
-        details = data || [];
+      const mutasiMap: Record<string, { debit: number; kredit: number }> = {};
+      for (const m of (mutasiRows as any[]) || []) {
+        mutasiMap[m.akun_id] = {
+          debit: Number(m.total_debit || 0),
+          kredit: Number(m.total_kredit || 0),
+        };
       }
 
       return akun.map((a) => {
-        const akunDetails = details.filter(d => d.akun_id === a.id);
-        const totalDebit = akunDetails.reduce((s, d) => s + Number(d.debit || 0), 0);
-        const totalKredit = akunDetails.reduce((s, d) => s + Number(d.kredit || 0), 0);
+        const m = mutasiMap[a.id] || { debit: 0, kredit: 0 };
         const saldoAwal = Number(a.saldo_awal || 0);
-        const saldoAkhir = a.saldo_normal === "debit"
-          ? saldoAwal + totalDebit - totalKredit
-          : saldoAwal + totalKredit - totalDebit;
+        // saldo_normal bisa "D"/"K" atau "debit"/"kredit" tergantung data
+        const isDebit = a.saldo_normal === "D" || a.saldo_normal === "debit";
+        const saldoAkhir = isDebit
+          ? saldoAwal + m.debit - m.kredit
+          : saldoAwal + m.kredit - m.debit;
 
         return {
           id: a.id,
@@ -100,8 +99,8 @@ export default function TutupBuku() {
           jenis: a.jenis,
           saldo_normal: a.saldo_normal,
           saldo_awal: saldoAwal,
-          totalDebit,
-          totalKredit,
+          totalDebit: m.debit,
+          totalKredit: m.kredit,
           saldoAkhir,
         };
       });
@@ -109,8 +108,8 @@ export default function TutupBuku() {
   });
 
   // Compute summary
-  const totalPendapatan = saldoAkun?.filter(a => a.jenis === "Pendapatan").reduce((s, a) => s + a.saldoAkhir, 0) || 0;
-  const totalBeban = saldoAkun?.filter(a => a.jenis === "Beban").reduce((s, a) => s + a.saldoAkhir, 0) || 0;
+  const totalPendapatan = saldoAkun?.filter(a => a.jenis?.toLowerCase() === "pendapatan").reduce((s, a) => s + a.saldoAkhir, 0) || 0;
+  const totalBeban = saldoAkun?.filter(a => a.jenis?.toLowerCase() === "beban").reduce((s, a) => s + Math.abs(a.saldoAkhir), 0) || 0;
   const labaRugi = totalPendapatan - totalBeban;
 
   const hasAkunEkuitas = !!akunAsetNeto?.akun_id;
@@ -138,8 +137,8 @@ export default function TutupBuku() {
         p_tahun: tahun,
       });
 
-      const pendapatan = saldoAkun.filter(a => a.jenis === "Pendapatan" && a.saldoAkhir !== 0);
-      const beban = saldoAkun.filter(a => a.jenis === "Beban" && a.saldoAkhir !== 0);
+      const pendapatan = saldoAkun.filter(a => a.jenis?.toLowerCase() === "pendapatan" && a.saldoAkhir !== 0);
+      const beban = saldoAkun.filter(a => a.jenis?.toLowerCase() === "beban" && a.saldoAkhir !== 0);
 
       let jurnalId: string | null = null;
 
