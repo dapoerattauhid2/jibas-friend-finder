@@ -15,12 +15,9 @@ import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { Building2, CheckCircle } from "lucide-react";
+import { Building2, CheckCircle, GraduationCap, FileBarChart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useSearchParams } from "react-router-dom";
-import TabLabaRugi from "./TabLabaRugi";
-import TabNeracaAkuntansi from "./TabNeracaAkuntansi";
-import TabArusKas from "./TabArusKas";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 
 const now = new Date();
@@ -28,23 +25,36 @@ const now = new Date();
 export default function LaporanKeuangan() {
   const [tab, setTab] = useState("penerimaan");
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [filterLembagaId, setFilterLembagaId] = useState(searchParams.get("lembaga") || "");
   const { data: lembagaList } = useLembaga();
   const deptId = filterLembagaId && filterLembagaId !== "all" ? filterLembagaId : undefined;
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Laporan Keuangan</h1>
-        <p className="text-sm text-muted-foreground">Laporan penerimaan, pengeluaran, dan rekap SPP</p>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <GraduationCap className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Laporan Unit Pendidikan</h1>
+            <p className="text-sm text-muted-foreground">Penerimaan SPP, pengeluaran, rekap siswa, dan laporan ISAK 35</p>
+          </div>
+        </div>
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate("/keuangan/isak35")}>
+          <FileBarChart className="h-4 w-4" />
+          Laporan ISAK 35 Lengkap
+        </Button>
       </div>
 
       {/* Filter Lembaga Global */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-3 flex-wrap p-3 bg-muted/40 rounded-lg border">
         <Building2 className="h-4 w-4 text-muted-foreground" />
-        <Label className="text-sm">Filter Lembaga:</Label>
+        <Label className="text-sm font-medium">Filter Lembaga:</Label>
         <Select value={filterLembagaId} onValueChange={setFilterLembagaId}>
-          <SelectTrigger className="w-56"><SelectValue placeholder="Semua Lembaga" /></SelectTrigger>
+          <SelectTrigger className="w-56 bg-background"><SelectValue placeholder="Semua Lembaga" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua Lembaga (Konsolidasi)</SelectItem>
             {lembagaList?.map((l: any) => (
@@ -58,34 +68,18 @@ export default function LaporanKeuangan() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Operasional</span>
-            <TabsList>
-              <TabsTrigger value="penerimaan">Penerimaan</TabsTrigger>
-              <TabsTrigger value="pengeluaran">Pengeluaran</TabsTrigger>
-              <TabsTrigger value="rekap-spp">Rekap SPP</TabsTrigger>
-              <TabsTrigger value="ringkasan-kas">Ringkasan Kas</TabsTrigger>
-              <TabsTrigger value="konsolidasi">Konsolidasi</TabsTrigger>
-            </TabsList>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Akuntansi</span>
-            <TabsList>
-              <TabsTrigger value="laba-rugi">Laba Rugi</TabsTrigger>
-              <TabsTrigger value="neraca-akuntansi">Neraca</TabsTrigger>
-              <TabsTrigger value="arus-kas">Arus Kas</TabsTrigger>
-            </TabsList>
-          </div>
-        </div>
+        <TabsList className="flex-wrap h-auto gap-1">
+          <TabsTrigger value="penerimaan">Penerimaan SPP</TabsTrigger>
+          <TabsTrigger value="pengeluaran">Pengeluaran</TabsTrigger>
+          <TabsTrigger value="rekap-spp">Rekap SPP Bulanan</TabsTrigger>
+          <TabsTrigger value="ringkasan-kas">Ringkasan Kas</TabsTrigger>
+          <TabsTrigger value="konsolidasi">Konsolidasi Lembaga</TabsTrigger>
+        </TabsList>
 
         <TabsContent value="penerimaan"><TabPenerimaan departemenId={deptId} /></TabsContent>
         <TabsContent value="pengeluaran"><TabPengeluaran departemenId={deptId} /></TabsContent>
         <TabsContent value="rekap-spp"><TabRekapSPP departemenId={deptId} /></TabsContent>
         <TabsContent value="ringkasan-kas"><TabNeraca departemenId={deptId} /></TabsContent>
-        <TabsContent value="laba-rugi"><TabLabaRugi departemenId={deptId} /></TabsContent>
-        <TabsContent value="neraca-akuntansi"><TabNeracaAkuntansi departemenId={deptId} /></TabsContent>
-        <TabsContent value="arus-kas"><TabArusKas departemenId={deptId} /></TabsContent>
         <TabsContent value="konsolidasi"><TabKonsolidasi /></TabsContent>
       </Tabs>
     </div>

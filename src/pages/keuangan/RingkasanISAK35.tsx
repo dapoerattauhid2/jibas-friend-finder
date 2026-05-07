@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useLaporanKomprehensif, useLaporanPosisiKeuangan } from "@/hooks/useISAK35";
 import { formatRupiah, useTahunAjaran } from "@/hooks/useKeuangan";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, TrendingDown, DollarSign, Building } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Building, FileBarChart, ArrowLeft } from "lucide-react";
 
 export default function RingkasanISAK35() {
   const currentYear = new Date().getFullYear();
@@ -36,8 +36,22 @@ export default function RingkasanISAK35() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Ringkasan Laporan ISAK 35</h1>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-blue-500/10">
+            <FileBarChart className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="h-6 px-0 text-muted-foreground hover:text-foreground gap-1" onClick={() => navigate("/keuangan/laporan")}>
+                <ArrowLeft className="h-3 w-3" /> Lap. Unit Pendidikan
+              </Button>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">Ringkasan Laporan ISAK 35</h1>
+            <p className="text-sm text-muted-foreground">Laporan keuangan entitas nirlaba — Unit Pendidikan</p>
+          </div>
+        </div>
         <Select value={String(tahun)} onValueChange={v => setTahun(Number(v))}>
           <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
           <SelectContent>{years.map((y: any) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>

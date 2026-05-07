@@ -921,20 +921,26 @@ export default function LaporanUnitUsaha() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Laporan Unit Usaha & Dana</h1>
-        <p className="text-sm text-muted-foreground">
-          Laporan keuangan departemen non-pendidikan — Mart, Kantin, Dapoer, Masjid, Dana Sosial
-        </p>
+      {/* Header */}
+      <div className="flex items-start gap-3">
+        <div className="p-2 rounded-lg bg-orange-500/10">
+          <Store className="h-6 w-6 text-orange-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Laporan Unit Usaha & Dana</h1>
+          <p className="text-sm text-muted-foreground">
+            Laporan keuangan departemen non-pendidikan — Mart, Kantin, Dapoer, Masjid, Dana Sosial
+          </p>
+        </div>
       </div>
 
       {/* Filter */}
-      <div className="flex gap-3 items-end flex-wrap">
+      <div className="flex gap-3 items-end flex-wrap p-3 bg-muted/40 rounded-lg border">
         <div>
           <Label>Tahun</Label>
           <Input
             type="number"
-            className="w-24"
+            className="w-24 bg-background"
             value={tahun}
             onChange={e => setTahun(Number(e.target.value))}
           />
@@ -942,7 +948,7 @@ export default function LaporanUnitUsaha() {
         <div>
           <Label>Lihat Detail Departemen</Label>
           <Select value={selectedDeptId} onValueChange={setSelectedDeptId}>
-            <SelectTrigger className="w-64">
+            <SelectTrigger className="w-64 bg-background">
               <SelectValue placeholder="Pilih departemen..." />
             </SelectTrigger>
             <SelectContent>
