@@ -8,10 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ExportButton } from "@/components/shared/ExportButton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatRupiah } from "@/hooks/useKeuangan";
+import { formatRupiah, namaBulan, BULAN_ORDER_AKADEMIK } from "@/hooks/useKeuangan";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, Store, Heart, Building2, Scale } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Store, Heart, Building2, Scale, Waves } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 // ─── Tipe departemen dan labelnya ───────────────────────────────
 const KATEGORI_LABEL: Record<string, string> = {
@@ -568,6 +569,325 @@ function NeracaKonsolidasi({
   );
 }
 
+// ─── Fetch arus kas (batch, bisa multi-dept) ─────────────────────
+async function fetchJurnalArusKas(
+  startDate: string,
+  endDate: string,
+  deptIds: string[],
+) {
+  const allRows: any[] = [];
+  const batchSize = 5000;
+  let offset = 0;
+  while (true) {
+    let q = supabase
+      .from("jurnal_detail")
+      .select("debit, kredit, jurnal:jurnal_id!inner(tanggal, status, departemen_id), akun:akun_id(kode, nama, jenis)")
+      .eq("jurnal.status", "posted")
+      .gte("jurnal.tanggal", startDate)
+      .lt("jurnal.tanggal", endDate);
+    if (deptIds.length > 0) q = q.in("jurnal.departemen_id", deptIds);
+    const { data, error } = await q.range(offset, offset + batchSize - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    allRows.push(...data);
+    if (data.length < batchSize) break;
+    offset += batchSize;
+  }
+  return allRows;
+}
+
+function hitungArusKas(rows: any[]) {
+  const kasMap = new Map<string, { kode: string; nama: string; masuk: number; keluar: number }>();
+  rows.forEach((row: any) => {
+    const akun = row.akun;
+    if (!akun) return;
+    const isKas =
+      akun.jenis === "aset" &&
+      (akun.kode.startsWith("11") ||
+        akun.kode.startsWith("12") ||
+        akun.nama.toLowerCase().includes("kas") ||
+        akun.nama.toLowerCase().includes("bank"));
+    if (!isKas) return;
+    const key = akun.kode;
+    if (!kasMap.has(key)) kasMap.set(key, { kode: akun.kode, nama: akun.nama, masuk: 0, keluar: 0 });
+    const entry = kasMap.get(key)!;
+    entry.masuk  += Number(row.debit  || 0);
+    entry.keluar += Number(row.kredit || 0);
+  });
+  return Array.from(kasMap.values()).sort((a, b) => a.kode.localeCompare(b.kode));
+}
+
+// ─── Tab Arus Kas Unit ───────────────────────────────────────────
+function ArusKasUnit({
+  allDeptIds,
+  deptList,
+}: {
+  allDeptIds: string[];
+  deptList: { id: string; nama: string; kode: string; kategori: string }[];
+}) {
+  const now = new Date();
+  const [bulan, setBulan]     = useState(now.getMonth() + 1);
+  const [tahun, setTahun]     = useState(now.getFullYear());
+  const [scope, setScope]     = useState<"all" | string>("all"); // "all" or dept id
+
+  const startDate = `${tahun}-${String(bulan).padStart(2, "0")}-01`;
+  const endM = bulan === 12 ? 1 : bulan + 1;
+  const endY = bulan === 12 ? tahun + 1 : tahun;
+  const endDate = `${endY}-${String(endM).padStart(2, "0")}-01`;
+
+  const deptIds = scope === "all" ? allDeptIds : [scope];
+  const selectedDeptLabel =
+    scope === "all"
+      ? "Semua Unit Non-Sekolah"
+      : deptList.find(d => d.id === scope)?.nama || scope;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["arus_kas_unit", bulan, tahun, scope, deptIds.join(",")],
+    queryFn: async () => {
+      if (deptIds.length === 0) return [];
+      const rows = await fetchJurnalArusKas(startDate, endDate, deptIds);
+      return hitungArusKas(rows);
+    },
+    enabled: deptIds.length > 0,
+  });
+
+  const totalMasuk  = data?.reduce((s, a) => s + a.masuk,  0) || 0;
+  const totalKeluar = data?.reduce((s, a) => s + a.keluar, 0) || 0;
+  const arusBersih  = totalMasuk - totalKeluar;
+
+  // Data bulanan (untuk grafik tren tahunan)
+  const { data: trenData } = useQuery({
+    queryKey: ["arus_kas_unit_tren", tahun, scope, deptIds.join(",")],
+    queryFn: async () => {
+      const results: { bulan: string; masuk: number; keluar: number }[] = [];
+      for (let m = 1; m <= 12; m++) {
+        const sd = `${tahun}-${String(m).padStart(2, "0")}-01`;
+        const em = m === 12 ? 1 : m + 1;
+        const ey = m === 12 ? tahun + 1 : tahun;
+        const ed = `${ey}-${String(em).padStart(2, "0")}-01`;
+        const rows = await fetchJurnalArusKas(sd, ed, deptIds);
+        const items = hitungArusKas(rows);
+        results.push({
+          bulan: namaBulan(m).slice(0, 3),
+          masuk: items.reduce((s, a) => s + a.masuk, 0),
+          keluar: items.reduce((s, a) => s + a.keluar, 0),
+        });
+      }
+      return results;
+    },
+    enabled: deptIds.length > 0,
+  });
+
+  const exportData = [
+    ...(data || []).map(a => ({
+      kode: a.kode, nama: a.nama,
+      kas_masuk: a.masuk, kas_keluar: a.keluar,
+      neto: a.masuk - a.keluar,
+    })),
+    { kode: "", nama: "TOTAL", kas_masuk: totalMasuk, kas_keluar: totalKeluar, neto: arusBersih },
+  ];
+
+  return (
+    <div className="space-y-4 pt-4">
+      {/* Filter */}
+      <div className="flex gap-3 items-end flex-wrap justify-between">
+        <div className="flex gap-3 items-end flex-wrap">
+          <div>
+            <Label>Unit</Label>
+            <Select value={scope} onValueChange={setScope}>
+              <SelectTrigger className="w-52">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">— Semua Unit —</SelectItem>
+                {deptList.map(d => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.kode} — {d.nama}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Bulan</Label>
+            <Select value={String(bulan)} onValueChange={v => setBulan(Number(v))}>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {BULAN_ORDER_AKADEMIK.map(m => (
+                  <SelectItem key={m} value={String(m)}>{namaBulan(m)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Tahun</Label>
+            <Input type="number" className="w-24" value={tahun} onChange={e => setTahun(Number(e.target.value))} />
+          </div>
+        </div>
+        <ExportButton
+          data={exportData as any}
+          filename={`arus-kas-unit-${namaBulan(bulan)}-${tahun}`}
+          columns={[
+            { key: "kode",      label: "Kode" },
+            { key: "nama",      label: "Nama Akun" },
+            { key: "kas_masuk", label: "Kas Masuk" },
+            { key: "kas_keluar",label: "Kas Keluar" },
+            { key: "neto",      label: "Neto" },
+          ]}
+        />
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-3">
+          <Skeleton className="h-48" />
+          <Skeleton className="h-48" />
+        </div>
+      ) : (
+        <>
+          {/* Kartu ringkasan */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card>
+              <CardContent className="pt-5 space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Kas Masuk</p>
+                <p className="text-xl font-bold text-success">{formatRupiah(totalMasuk)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-5 space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Kas Keluar</p>
+                <p className="text-xl font-bold text-destructive">{formatRupiah(totalKeluar)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-5 space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Arus Bersih</p>
+                <p className={`text-xl font-bold ${arusBersih >= 0 ? "text-success" : "text-destructive"}`}>
+                  {formatRupiah(arusBersih)}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Laporan detail */}
+          <Card>
+            <CardContent className="pt-6 space-y-5">
+              <div className="text-center">
+                <h2 className="text-lg font-bold">LAPORAN ARUS KAS</h2>
+                <p className="text-sm font-medium">{selectedDeptLabel}</p>
+                <p className="text-sm text-muted-foreground">Periode: {namaBulan(bulan)} {tahun}</p>
+              </div>
+
+              {/* Kas Masuk */}
+              <div>
+                <h3 className="font-semibold text-sm uppercase tracking-wide bg-success/10 text-success px-3 py-1.5 rounded mb-2">
+                  KAS MASUK (Debit Akun Kas/Bank)
+                </h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-16">Kode</TableHead>
+                      <TableHead>Nama Akun</TableHead>
+                      <TableHead className="text-right">Jumlah</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {!data || data.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-muted-foreground text-sm">Tidak ada data</TableCell>
+                      </TableRow>
+                    ) : data.map(a => (
+                      <TableRow key={`in-${a.kode}`}>
+                        <TableCell className="text-sm text-muted-foreground">{a.kode}</TableCell>
+                        <TableCell className="text-sm">{a.nama}</TableCell>
+                        <TableCell className="text-right text-sm font-medium">{formatRupiah(a.masuk)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter>
+                    <TableRow>
+                      <TableCell colSpan={2} className="font-bold">TOTAL KAS MASUK</TableCell>
+                      <TableCell className="text-right font-bold text-success">{formatRupiah(totalMasuk)}</TableCell>
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              </div>
+
+              {/* Kas Keluar */}
+              <div>
+                <h3 className="font-semibold text-sm uppercase tracking-wide bg-destructive/10 text-destructive px-3 py-1.5 rounded mb-2">
+                  KAS KELUAR (Kredit Akun Kas/Bank)
+                </h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-16">Kode</TableHead>
+                      <TableHead>Nama Akun</TableHead>
+                      <TableHead className="text-right">Jumlah</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {!data || data.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-muted-foreground text-sm">Tidak ada data</TableCell>
+                      </TableRow>
+                    ) : data.map(a => (
+                      <TableRow key={`out-${a.kode}`}>
+                        <TableCell className="text-sm text-muted-foreground">{a.kode}</TableCell>
+                        <TableCell className="text-sm">{a.nama}</TableCell>
+                        <TableCell className="text-right text-sm font-medium">{formatRupiah(a.keluar)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter>
+                    <TableRow>
+                      <TableCell colSpan={2} className="font-bold">TOTAL KAS KELUAR</TableCell>
+                      <TableCell className="text-right font-bold text-destructive">{formatRupiah(totalKeluar)}</TableCell>
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              </div>
+
+              {/* Neto */}
+              <div className="border-t-2 border-double pt-4 flex justify-between font-bold text-lg">
+                <span>ARUS KAS BERSIH</span>
+                <span className={arusBersih >= 0 ? "text-success" : "text-destructive"}>
+                  {formatRupiah(arusBersih)}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Grafik tren tahunan */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Tren Arus Kas Bulanan — {tahun}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!trenData ? (
+                <Skeleton className="h-52" />
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={trenData} barGap={2}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="bulan" tick={{ fontSize: 11 }} />
+                    <YAxis tickFormatter={v => `${(v / 1_000_000).toFixed(0)}jt`} tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v: number) => formatRupiah(v)} />
+                    <Legend />
+                    <Bar dataKey="masuk"  name="Kas Masuk"  fill="hsl(var(--success))"     radius={[3,3,0,0]} />
+                    <Bar dataKey="keluar" name="Kas Keluar" fill="hsl(var(--destructive))"  radius={[3,3,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Halaman Utama ────────────────────────────────────────────────
 export default function LaporanUnitUsaha() {
   const [tahun, setTahun] = useState(new Date().getFullYear());
@@ -646,6 +966,9 @@ export default function LaporanUnitUsaha() {
           <TabsTrigger value="neraca" className="flex items-center gap-1">
             <Scale className="h-4 w-4" /> Neraca Konsolidasi
           </TabsTrigger>
+          <TabsTrigger value="aruskas" className="flex items-center gap-1">
+            <Waves className="h-4 w-4" /> Arus Kas
+          </TabsTrigger>
         </TabsList>
 
         {/* Tab Laba Rugi */}
@@ -703,6 +1026,17 @@ export default function LaporanUnitUsaha() {
             </div>
           ) : (
             <NeracaKonsolidasi tahun={tahun} deptIds={allDeptIds} />
+          )}
+        </TabsContent>
+
+        {/* Tab Arus Kas */}
+        <TabsContent value="aruskas">
+          {loadDept ? (
+            <div className="space-y-3 pt-4">
+              {[1,2,3].map(i => <Skeleton key={i} className="h-32" />)}
+            </div>
+          ) : (
+            <ArusKasUnit allDeptIds={allDeptIds} deptList={deptList || []} />
           )}
         </TabsContent>
       </Tabs>
