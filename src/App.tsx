@@ -70,6 +70,7 @@ import LaporanPosisiKeuangan from "./pages/keuangan/LaporanPosisiKeuangan";
 import LaporanArusKasISAK35 from "./pages/keuangan/LaporanArusKasISAK35";
 import LaporanPerubahanAsetNeto from "./pages/keuangan/LaporanPerubahanAsetNeto";
 import CatatanLaporanKeuangan from "./pages/keuangan/CatatanLaporanKeuangan";
+import LaporanUnitUsaha from "./pages/keuangan/LaporanUnitUsaha";
 import ProfilYayasan from "./pages/pengaturan/ProfilYayasan";
 import ManajemenPengguna from "./pages/pengaturan/ManajemenPengguna";
 import ManajemenOrtu from "./pages/pengaturan/ManajemenOrtu";
@@ -171,6 +172,7 @@ const App = () => (
                   <Route path="/keuangan/jurnal" element={<JurnalUmum />} />
                   <Route path="/keuangan/buku-besar" element={<BukuBesar />} />
                   <Route path="/keuangan/laporan-pengeluaran" element={<LaporanPengeluaran />} />
+                  <Route path="/keuangan/laporan-unit-usaha" element={<LaporanUnitUsaha />} />
                   <Route path="/keuangan/penerimaan-lain" element={<LaporanPenerimaanLain />} />
                   <Route path="/keuangan/online-payment" element={<OnlinePayment />} />
                   <Route path="/keuangan/audit-trail" element={<AuditTrail />} />

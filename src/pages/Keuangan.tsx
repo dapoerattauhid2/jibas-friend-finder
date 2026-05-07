@@ -31,6 +31,7 @@ const links = [
   { label: "Referensi", url: "/keuangan/referensi" },
   { label: "Tutup Buku", url: "/keuangan/tutup-buku" },
   { label: "Rekon Antar Lembaga", url: "/keuangan/rekon-antar-lembaga" },
+  { label: "Lap. Unit Usaha", url: "/keuangan/laporan-unit-usaha" },
 ];
 
 export default function Keuangan() {
