@@ -13,6 +13,7 @@ interface SaldoAkun {
 }
 
 async function hitungSaldoAkun(tahun: number, departemenId?: string): Promise<SaldoAkun[]> {
+  // Ambil daftar akun (jumlahnya kecil, tidak terkena limit)
   const { data: akunList, error: akunErr } = await supabase
     .from("akun_rekening")
     .select("id, kode, nama, pos_isak35, saldo_normal, urutan_isak35, saldo_awal")
@@ -21,23 +22,22 @@ async function hitungSaldoAkun(tahun: number, departemenId?: string): Promise<Sa
     .order("urutan_isak35");
   if (akunErr) throw akunErr;
 
-  let q = supabase
-    .from("jurnal_detail")
-    .select("akun_id, debit, kredit, jurnal!inner(tanggal, status, departemen_id)")
-    .eq("jurnal.status", "posted")
-    .gte("jurnal.tanggal", `${tahun}-01-01`)
-    .lte("jurnal.tanggal", `${tahun}-12-31`);
-  if (departemenId) q = (q as any).eq("jurnal.departemen_id", departemenId);
-  const { data: details, error: detErr } = await q;
-  if (detErr) throw detErr;
+  // Agregasi mutasi di sisi database via RPC — bebas dari batas 1.000 row Supabase client
+  const rpcParams: { p_tahun: number; p_departemen_id?: string } = { p_tahun: tahun };
+  if (departemenId) rpcParams.p_departemen_id = departemenId;
+  const { data: mutasiRows, error: mutasiErr } = await (supabase as any)
+    .rpc("hitung_mutasi_akun", rpcParams);
+  if (mutasiErr) throw mutasiErr;
 
   const mutasi: Record<string, { debit: number; kredit: number }> = {};
-  for (const d of (details as any[]) || []) {
-    if (!mutasi[d.akun_id]) mutasi[d.akun_id] = { debit: 0, kredit: 0 };
-    mutasi[d.akun_id].debit += Number(d.debit || 0);
-    mutasi[d.akun_id].kredit += Number(d.kredit || 0);
+  for (const d of (mutasiRows as any[]) || []) {
+    mutasi[d.akun_id] = {
+      debit:  Number(d.total_debit  || 0),
+      kredit: Number(d.total_kredit || 0),
+    };
   }
 
+  // Saldo awal per akun (dari tabel saldo_awal_isak35 atau kolom saldo_awal akun)
   const saldoAwalQuery = supabase
     .from("saldo_awal_isak35" as any)
     .select("akun_id, saldo")
@@ -288,29 +288,16 @@ export function useLaporanArusKas(tahun: number, departemenId?: string) {
         kasAwal += saldoAwalMap[a.id] ?? Number(a.saldo_awal || 0);
       }
 
-      // Ambil semua jurnal posted di tahun terkait yang menyentuh akun kas
-      let jq = supabase
-        .from("jurnal")
-        .select("id")
-        .eq("status", "posted")
-        .gte("tanggal", `${tahun}-01-01`)
-        .lte("tanggal", `${tahun}-12-31`);
-      if (departemenId) jq = jq.eq("departemen_id", departemenId);
-      const { data: jurnalRows } = await jq;
-      const jurnalIds = (jurnalRows || []).map((j: any) => j.id);
-
+      // Ambil semua detail jurnal yang menyentuh akun kas via RPC — bebas dari row limit
+      const kasIdsArr = Array.from(akunKasIds);
       let allDetails: any[] = [];
-      if (jurnalIds.length > 0) {
-        // Batch IN to avoid url length limit
-        const batchSize = 500;
-        for (let i = 0; i < jurnalIds.length; i += batchSize) {
-          const batch = jurnalIds.slice(i, i + batchSize);
-          const { data } = await supabase
-            .from("jurnal_detail")
-            .select("jurnal_id, akun_id, debit, kredit")
-            .in("jurnal_id", batch);
-          allDetails.push(...((data as any[]) || []));
-        }
+      if (kasIdsArr.length > 0) {
+        const rpcArusKas: any = { p_tahun: tahun, p_akun_kas_ids: kasIdsArr };
+        if (departemenId) rpcArusKas.p_departemen_id = departemenId;
+        const { data: detailRows, error: detErr } = await (supabase as any)
+          .rpc("get_detail_jurnal_kas", rpcArusKas);
+        if (detErr) throw detErr;
+        allDetails = (detailRows as any[]) || [];
       }
 
       // Kelompokkan detail per jurnal
