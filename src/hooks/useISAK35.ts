@@ -85,6 +85,15 @@ async function totalDepresiasi(tahun: number, departemenId?: string) {
   return { totalHP, totalBeban, totalAkum, totalNB };
 }
 
+// ============================================================
+// Akun yang di-EXCLUDE dari laporan ISAK 35
+// - 5824: Hibah Antar Lembaga → transfer internal, bukan beban operasional
+// - 1901: Rekening Antar Lembaga → rekening internal, bukan aset riil
+// - 1902: Rekening Antar Bagian  → rekening internal, bukan aset riil
+// ============================================================
+const EXCLUDE_BEBAN_TRANSFER = ["5824"];          // exclude dari beban
+const EXCLUDE_ASET_INTERNAL  = ["1901", "1902"];  // exclude dari aset tidak lancar
+
 // Helper: filter accounts by pos_isak35 and only include those with non-zero saldo
 function byPos(saldo: SaldoAkun[], ...positions: string[]) {
   return saldo.filter(a => positions.includes(a.pos_isak35));
@@ -127,7 +136,9 @@ export function useLaporanKomprehensif(tahun: number, departemenId?: string) {
       const totalPendapatan = sumSaldo(pendapatan);
 
       // Beban (program + penunjang) + tambah beban depresiasi sebagai item virtual
-      const bebanAkun = byPos(saldo, "beban_program", "beban_penunjang");
+      // Exclude akun transfer internal (Hibah Antar Lembaga dll) — bukan beban operasional ISAK35
+      const bebanAkun = byPos(saldo, "beban_program", "beban_penunjang")
+        .filter(a => !EXCLUDE_BEBAN_TRANSFER.includes(a.kode));
       const bebanDepresiasiItem: SaldoAkun | null = dep.totalBeban > 0 ? {
         akun_id: "__depresiasi__",
         kode: "DEP",
@@ -181,8 +192,9 @@ export function useLaporanPosisiKeuangan(tahun: number, departemenId?: string) {
       const asetLancarItems = byPos(saldo, "aset_lancar");
       const totalAL = sumSaldo(asetLancarItems);
 
-      // Aset Tidak Lancar - all accounts with pos_isak35 = 'aset_tidak_lancar'
-      const asetTidakLancarItems = byPos(saldo, "aset_tidak_lancar");
+      // Aset Tidak Lancar - exclude rekening antar lembaga/bagian (akun internal)
+      const asetTidakLancarItems = byPos(saldo, "aset_tidak_lancar")
+        .filter(a => !EXCLUDE_ASET_INTERNAL.includes(a.kode));
       const totalATL = sumSaldo(asetTidakLancarItems);
 
       const totalAset = totalAL + totalATL;
@@ -203,7 +215,10 @@ export function useLaporanPosisiKeuangan(tahun: number, departemenId?: string) {
 
       // Surplus/Defisit periode berjalan (belum di-tutup-buku-kan ke ekuitas)
       const pendapatanTT = sumSaldo(byPos(saldo, "pendapatan_tidak_terikat"));
-      const bebanTT = sumSaldo(byPos(saldo, "beban_program", "beban_penunjang")) + dep.totalBeban;
+      const bebanTT = sumSaldo(
+        byPos(saldo, "beban_program", "beban_penunjang")
+          .filter(a => !EXCLUDE_BEBAN_TRANSFER.includes(a.kode))
+      ) + dep.totalBeban;
       const surplusBerjalan = pendapatanTT - bebanTT;
 
       const pendapatanTerbatas = sumSaldo(byPos(saldo, "pendapatan_terikat_temporer", "pendapatan_terikat_permanen"));
@@ -360,6 +375,8 @@ export function useLaporanArusKas(tahun: number, departemenId?: string) {
 
         for (const lr of sisiLawan) {
           const meta = akunMeta[lr.akun_id];
+          // Skip akun transfer internal (rekening antara & hibah antar lembaga)
+          if (meta?.kode && (EXCLUDE_BEBAN_TRANSFER.includes(meta.kode) || EXCLUDE_ASET_INTERNAL.includes(meta.kode))) continue;
           const pos = meta?.pos_isak35 ?? null;
           const nilaiLawan = isPenerimaan ? Number(lr.kredit || 0) : Number(lr.debit || 0);
           if (nilaiLawan === 0) continue;
