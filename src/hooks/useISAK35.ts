@@ -91,8 +91,8 @@ async function totalDepresiasi(tahun: number, departemenId?: string) {
 // - 1901: Rekening Antar Lembaga → rekening internal, bukan aset riil
 // - 1902: Rekening Antar Bagian  → rekening internal, bukan aset riil
 // ============================================================
-const EXCLUDE_BEBAN_TRANSFER = ["5824"];          // exclude dari beban
-const EXCLUDE_ASET_INTERNAL  = ["1901", "1902"];  // exclude dari aset tidak lancar
+const EXCLUDE_BEBAN_TRANSFER: string[] = [];      // 5824 TIDAK di-exclude: beban riil kas yayasan
+const EXCLUDE_ASET_INTERNAL  = ["1901", "1902"];  // exclude dari aset tidak lancar (saldo selalu nol)
 
 // Helper: filter accounts by pos_isak35 and only include those with non-zero saldo
 function byPos(saldo: SaldoAkun[], ...positions: string[]) {
